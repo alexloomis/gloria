@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://c4uulog2ftxhl"]
+
+[ext_resource type="Script" path="res://map/tile/tile.gd" id="1_37wv1"]
+[ext_resource type="Texture2D" uid="uid://can7yq1eo7lb5" path="res://textures_test/water.png" id="1_438l5"]
+
+[node name="Tile" type="Sprite2D"]
+texture = ExtResource("1_438l5")
+script = ExtResource("1_37wv1")
+terrain = 2

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bi7ig83hjd3v2"]
+
+[ext_resource type="Script" path="res://entity/unit/unit.gd" id="1_jpbmp"]
+
+[node name="Unit" type="Node2D" groups=["entity"]]
+script = ExtResource("1_jpbmp")

@@ -1,0 +1,58 @@
+[gd_scene load_steps=6 format=3 uid="uid://smjr44utvxtk"]
+
+[ext_resource type="Script" path="res://map/battle.gd" id="1_omlya"]
+[ext_resource type="Script" path="res://map/camera.gd" id="1_u6xvg"]
+[ext_resource type="Texture2D" uid="uid://bftjvuchryay3" path="res://textures_test/ph_background.jpg" id="3_kgd5d"]
+[ext_resource type="PackedScene" uid="uid://occ4f3kwgxqv" path="res://entity/DEBUG/Commander.tscn" id="4_6lqbp"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_y0vd2"]
+size = Vector2(8192, 5376)
+
+[node name="Battle" type="Node"]
+script = ExtResource("1_omlya")
+
+[node name="Camera" type="Camera2D" parent="."]
+unique_name_in_owner = true
+anchor_mode = 0
+zoom = Vector2(0.33, 0.33)
+limit_left = -10
+limit_top = -10
+limit_right = 4000
+limit_bottom = 1000
+script = ExtResource("1_u6xvg")
+
+[node name="Movement" type="Node" parent="."]
+
+[node name="IgnoresCamera" type="CanvasLayer" parent="."]
+follow_viewport_enabled = true
+
+[node name="Background" type="Sprite2D" parent="IgnoresCamera"]
+texture = ExtResource("3_kgd5d")
+
+[node name="Tiles" type="Node" parent="IgnoresCamera"]
+unique_name_in_owner = true
+
+[node name="Area2D" type="Area2D" parent="IgnoresCamera"]
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="IgnoresCamera/Area2D"]
+position = Vector2(4096, 2688)
+shape = SubResource("RectangleShape2D_y0vd2")
+
+[node name="Units" type="Node" parent="IgnoresCamera"]
+
+[node name="Player" type="Node" parent="IgnoresCamera/Units"]
+unique_name_in_owner = true
+
+[node name="Commander" parent="IgnoresCamera/Units/Player" instance=ExtResource("4_6lqbp")]
+
+[node name="FollowsCamera" type="CanvasLayer" parent="."]
+
+[node name="UI" type="Control" parent="FollowsCamera"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[connection signal="input_event" from="IgnoresCamera/Area2D" to="." method="_on_area_2d_input_event"]

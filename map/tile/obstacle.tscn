@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3 uid="uid://d2jx050vj6q37"]
+
+[ext_resource type="Texture2D" uid="uid://bpm4b51avd8ue" path="res://textures_test/obstacle.png" id="1_6d74f"]
+[ext_resource type="Script" path="res://map/tile/tile.gd" id="1_t2muf"]
+
+[node name="Tile" type="Sprite2D"]
+texture = ExtResource("1_6d74f")
+script = ExtResource("1_t2muf")

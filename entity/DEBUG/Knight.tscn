@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3 uid="uid://dq8bwfsc5ltul"]
+
+[ext_resource type="Script" path="res://entity/unit/follower/follower.gd" id="1_2s2dl"]
+[ext_resource type="Texture2D" uid="uid://bc1wrioladpei" path="res://textures_test/knight.png" id="2_bmca3"]
+
+[node name="Knight" type="Node2D"]
+script = ExtResource("1_2s2dl")
+texture = ExtResource("2_bmca3")

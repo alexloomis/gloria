@@ -1,0 +1,71 @@
+\babel@toc {english}{}\relax 
+\contentsline {paragraph}{On contradictions:}{1}{}%
+\contentsline {section}{\numberline {1}Skills}{2}{}%
+\contentsline {subsection}{\numberline {1.1}Attribute Levels}{2}{}%
+\contentsline {subsubsection}{\numberline {1.1.1}Spell Casting}{3}{}%
+\contentsline {subsubsection}{\numberline {1.1.2}Combat}{3}{}%
+\contentsline {subsection}{\numberline {1.2}List of Attributes}{3}{}%
+\contentsline {subsubsection}{\numberline {1.2.1}Morale}{4}{}%
+\contentsline {subsubsection}{\numberline {1.2.2}Valor}{4}{}%
+\contentsline {section}{\numberline {2}Spell Casting}{4}{}%
+\contentsline {subsubsection}{\numberline {2.0.1}Magic Resistance}{5}{}%
+\contentsline {section}{\numberline {3}Items}{5}{}%
+\contentsline {section}{\numberline {4}Troops/Combat}{5}{}%
+\contentsline {section}{\numberline {5}Provinces}{5}{}%
+\contentsline {section}{\numberline {6}Tribes}{6}{}%
+\contentsline {subsection}{\numberline {6.1}The Ak'taar}{6}{}%
+\contentsline {paragraph}{Blurb}{6}{}%
+\contentsline {paragraph}{Pretender}{6}{}%
+\contentsline {paragraph}{Characters}{6}{}%
+\contentsline {subsection}{\numberline {6.2}The Oshu}{6}{}%
+\contentsline {paragraph}{Blurb}{6}{}%
+\contentsline {paragraph}{Characters}{7}{}%
+\contentsline {paragraph}{Pretender Abilities}{7}{}%
+\contentsline {subsection}{\numberline {6.3}The Kairoth}{7}{}%
+\contentsline {paragraph}{Blurb}{7}{}%
+\contentsline {paragraph}{Characters}{7}{}%
+\contentsline {subsection}{\numberline {6.4}The Duru}{7}{}%
+\contentsline {paragraph}{Blurb}{7}{}%
+\contentsline {paragraph}{Pretender}{7}{}%
+\contentsline {paragraph}{Characters}{7}{}%
+\contentsline {subsection}{\numberline {6.5}The Ilun}{7}{}%
+\contentsline {paragraph}{Blurb}{7}{}%
+\contentsline {paragraph}{Characters}{7}{}%
+\contentsline {paragraph}{Units}{7}{}%
+\contentsline {subsection}{\numberline {6.6}Not Satanists}{7}{}%
+\contentsline {paragraph}{Blurb}{7}{}%
+\contentsline {paragraph}{Characters}{8}{}%
+\contentsline {paragraph}{Pretender Abilities}{8}{}%
+\contentsline {subsection}{\numberline {6.7}Not Amazons}{8}{}%
+\contentsline {paragraph}{Blurb}{8}{}%
+\contentsline {paragraph}{Characters}{8}{}%
+\contentsline {paragraph}{Pretender}{8}{}%
+\contentsline {subsection}{\numberline {6.8}Solipsia}{8}{}%
+\contentsline {paragraph}{Blurb}{8}{}%
+\contentsline {paragraph}{Characters}{8}{}%
+\contentsline {paragraph}{Pretender Abilities}{8}{}%
+\contentsline {paragraph}{Units}{9}{}%
+\contentsline {subsection}{\numberline {6.9}Animal Peeps}{9}{}%
+\contentsline {paragraph}{Blurb}{9}{}%
+\contentsline {paragraph}{Characters}{9}{}%
+\contentsline {subsection}{\numberline {6.10}Clay Guys}{9}{}%
+\contentsline {paragraph}{Blurb}{9}{}%
+\contentsline {paragraph}{Characters}{9}{}%
+\contentsline {section}{\numberline {7}Pretenders}{9}{}%
+\contentsline {section}{\numberline {8}Items}{10}{}%
+\contentsline {section}{\numberline {9}Scenarios}{11}{}%
+\contentsline {subsection}{\numberline {9.1}First scenario/tutorial}{11}{}%
+\contentsline {paragraph}{Prompt.}{11}{}%
+\contentsline {paragraph}{Win condition.}{11}{}%
+\contentsline {subsection}{\numberline {9.2}Second scenario/tutorial}{11}{}%
+\contentsline {paragraph}{Prompt.}{11}{}%
+\contentsline {paragraph}{Win condition.}{11}{}%
+\contentsline {subsection}{\numberline {9.3}Third scenario/tutorial}{11}{}%
+\contentsline {paragraph}{Prompt.}{11}{}%
+\contentsline {paragraph}{Win condition.}{11}{}%
+\contentsline {subsection}{\numberline {9.4}Fourth scenario/tutorial}{11}{}%
+\contentsline {paragraph}{Prompt.}{12}{}%
+\contentsline {paragraph}{Win condition.}{12}{}%
+\contentsline {subsection}{\numberline {9.5}Fifth scenario/tutorial}{12}{}%
+\contentsline {paragraph}{Prompt.}{12}{}%
+\contentsline {paragraph}{Win condition.}{12}{}%

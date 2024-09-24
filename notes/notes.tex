@@ -1,0 +1,728 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath,amsfonts,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{mathpazo}
+\usepackage[margin=2cm]{geometry}
+
+\author{Alex Loomis}
+\title{Notes}
+
+\begin{document}
+
+\maketitle
+
+\paragraph{On contradictions:}
+
+One present can have two pasts.
+Ea created the world to fill it with her children.
+When Zeus killed Chronos, his spilt blood created the world.
+Osiris will end the world, jealous of the attention Isis bestows upon it.
+The world will end when Coyote loses it in a game of cards.
+The world always was, and always will be.
+These are all true.
+As reality diverges into hypotheticals and dreams,
+so to does it converge, melding disparate pasts.
+
+\tableofcontents
+
+Note that pretty much everything (code, other notes, etc) supercedes this
+in case of conflict.
+
+Square grid, so armies can move straight towards each other with a straight front.
+
+Game name ideas: eternal revolution, divine revolution, omniscience,
+battle of the gods, ascension
+
+Is it possible to make the game with no economy?
+Like if instead of buying units,
+they are recruited based on in-game achievements.
+This would make it easier to avoid doom-stacks,
+and units/nations could be balanced
+based on how quickly the achievements can be completed.
+This could also guide to relevant unlocks,
+and lean into faction design.
+For example, a faction with good cavalry
+could get a leader with an effect beneficial to cavalry
+after getting a certain number of cavalry kills.
+
+Event based game: units are recruited by doing specific things,
+pretenders are awakened by doing specific things,
+maybe even each pretender has a specific ritual they must complete to ascend,
+i.e.\ every pretender has a different win condition.
+Fertility godess would win when global pop passes a certain number,
+a death god when a certain number of units have died, etc.
+
+Try to have more different lore per faction
+by assigning a ``genre'' to each unit backstory?
+
+Possible late-game acceleration:
+as the pretenders absorb
+the late omnipotence's essence,
+still discharging into the universe,
+they all grow closer to ascending.
+As well, any unit which kills a pretender
+could become significantly more powerful.
+
+The game is non-elemental.
+Though there may be creatures that live in water
+or breathe fire, they are not water or fire units.
+There can be casters with fire-based abilities,
+but there cannot be pyromancers.
+
+\section{Skills}
+
+Skills are rolled against each other at 2d6 + attribute.
+
+Idea: remove attributes that don't have `knowability'.
+How many HP does Odin have? Who knows.
+Use a wound system instead, or tie into immutability, or the like.
+
+Why split physical/spell attacks?
+Because \emph{spells aren't attacks}.
+Attack is your ability to inflict damage,
+spellcasting is your ability to inflict status effects.
+
+Note that spell def defends against friendly spells too,
+so highly defensive units are harder to buff.
+Should spells increase spell def,
+so the more you want to change a unit the harder it is to do?
+
+\subsection{Attribute Levels}
+
+Attribute levels typically range from one to six.
+These represent
+
+\begin{enumerate}
+	\item someone unskilled,
+	\item an ordinary person who relies on the skill,
+	\item a highly capable person, an expert in the skill,
+	\item legendary humans, weak pretenders,
+	\item someone with beyond-mortal capabilities, capable but not an expert,
+	\item someone with beyond-mortal capabilities working in their domain of expertise.
+\end{enumerate}
+
+\subsubsection{Spell Casting}
+
+\begin{enumerate}
+	\item Someone sensitive to magic, able to tap into it at sites of great power
+	      (Andrew Ketterly, Rinsewind).
+	\item An ordinary sorceror or witch (Nanny Ogg).
+	\item An archmage, the head of a coven (Ged).
+	\item Legendary casters (Morgan le Fay).
+	\item Many pretenders (Odin).
+	\item Pretenders whose domain is magic (Mystra).
+\end{enumerate}
+
+\subsubsection{Combat}
+
+\begin{enumerate}
+	\item Most humans.
+	\item Soldiers and mercenaries.
+	\item Champion duelists (Cyrano).
+	\item Legendary heros (Gilgamesh).
+	\item Many pretenders (Demeter).
+	\item Pretenders whose focus is war (Mars).
+\end{enumerate}
+
+\subsection{List of Attributes}
+
+\begin{itemize}
+	\item Hit points
+	\item Move
+	\item Morale
+	\item Attack
+	\item Defense
+	\item Valor (basically spell casting for fighters)
+	\item Spell casting
+	\item Magic resistance
+\end{itemize}
+
+\subsubsection{Morale}
+Morale is resistance to fear effects, including routs due to low Hp.
+
+\subsubsection{Valor}
+
+Units gain enemy valor squared experience per kill, divided evenly,
+and require (own valor + 1) squared experience to gain one valor.
+Each point of valor provides an additional point of morale, attack, defense, and magic resistance.
+
+Having enough valor allows, e.g.\ bersearkers to turn into bears.
+As well, only a number of units equal to the max valor on the team can move each turn.
+Should it be the square rood of the summed squares instead?
+
+\section{Spell Casting}
+
+Spell levels are roughly
+
+\begin{enumerate}
+	\item trivial effects,
+	\item personal effects,
+	\item local effects,
+	\item battlefield-wide effects,
+	\item province-wide effects,
+	\item global or permanent effects,
+	\item appocalyptic effects,
+\end{enumerate}
+
+though of course a strong enough personal effect
+might be a higher level than a battlefield-wide effect, etc.
+
+The highest level spell a caster can cast is
+their level, plus the strength of magic in the province
+(between -3 and +3).
+Sacred casters and pretenders are capped as well by the devotion in the province.
+Some mages have the ability to temporarily boost their level,
+for example blood mages may sacrifice their life force to boost their casting.
+
+High enough level spells can only ever be cast once.
+There's no Ragnorack 2: the Electric Boogaloo.
+
+Possible types of casters include
+\begin{itemize}
+	\item Summoners - summon units in battle, and ritual summons
+	\item Druids - environmental manipulation
+	\item Augers - rituals to scout and reveal information
+	\item Sorcerers - blow stuff up. boom.
+	\item Enchanters - enthrall people
+\end{itemize}
+In general, most spells do not do direct dammage.
+
+\subsubsection{Magic Resistance}
+In order to effect someone (friend or foe) with a spell,
+the caster must win a spell casting vs spell resistance roll.
+
+\section{Items}
+
+Most units can cary up to a single magic item.
+It is far easier to find items than it is to craft them.
+Each magic item should be very impactful.
+
+\section{Troops/Combat}
+
+Each commander has a preset retinue that cannot generally be changed.
+Losses replenish with time, faster in friendly territory.
+
+The lower the current hitpoints of a unit,
+the higher the chance of developing a permanent injury when damaged.
+
+If meelee and ranged need balancing, try making meelee hit all enemies in range.
+
+Idea for AI: unit and ability tags.
+Each ability has tags indicating e.g.\ that it deals damage.
+Particularly nuanced abilities can have a query function to ask it if/how it wants to be used.
+Example: A mage unit has a fireball spell.
+It has AoE and damage tags, so the AI will try to move to where it can hit multiple enemies.
+A support unit has an ability that keeps nearby allies from dying.
+It has the AoE, buff, and special tags, so it will be asked where to move.
+If it has no preference, like if all units are at full health,
+then it will move to be near the largest group of allies,
+because of the buff and AoE tags.
+The ability which is asking the hardest (has the best utility score) will be used.
+
+Unit tags give global (to the unit) modifiers.
+If a unit has the fearless tag, it would prioritize being near enemies,
+regardless of the range of its abilities.
+
+When one unit attacks another,
+every unit with enough movement to reach the tile has the option to join.
+If they do so, it depletes their movement.
+
+\section{Provinces}
+
+Province details include
+
+\begin{itemize}
+	\item Terain
+	\item Modifiers
+	\item Buildings
+	\item Neighbors
+	\item Population
+	\item Fealty (who controlls)
+	\item Dominion (who they folllow)
+	\item Devotion (how strongly they follow)
+\end{itemize}
+
+\section{Tribes}
+
+Some questions for inspiration:
+\begin{itemize}
+	\item How active is the pretender?
+	      Does he manifest to his followers,
+	      or talk to them only through priests or a prophet?
+	\item How is the religion organized?
+	      Is there an organized hierarchy,
+	      or are religious leaders anyone people will listen to?
+	\item What religious organizations exist,
+	      like missions or monastaries?
+	      If there is a religious hierarchy,
+	      which of these organizations are affiliated with the official structure?
+\end{itemize}
+
+Remark that if a Pretender grants his powers to a priesthood,
+their own, direct power is diminished.
+So particularly paranoid or narcissistic pretenders
+should have generally mundane clergy.
+Or possibly only particularly trusting and generous pretenders
+share their power.
+
+Design idea: for each tribe, choose a mental illness their pretender embodies?
+Should create dramatic, conflict-prone designs.
+
+\subsection{The Ak'taar}
+
+\paragraph{Blurb}
+
+The members of this cult believe there are terrible ancient beings
+sleeping beneath the ocean whose breathing causes the tides.
+They make human sacrifices to appease them and to keep them asleep.
+
+\paragraph{Pretender}
+
+The pretender gains an ability that allows it to sacrifice victims to gain power,
+and sacrifice its power to keep ancient evils imprisoned.
+Each turn the ancient evils progress towards breaking free.
+Once they break free, they wander around destroying provinces,
+biased in favor of the pretender's land and dominion.
+
+\paragraph{Characters}
+
+(Spy) XXX is a heretic, secretly working to liberate the evil.
+He may be used to accelerate its release.
+
+\subsection{The Oshu}
+\paragraph{Blurb}
+
+The Oshu bond for life with a spirit when they turn 13.
+Twins are sacred, and are bonded with each other.
+
+\paragraph{Characters}
+
+(Warrior) XXX and YYY are brother and sister, famed for their hunting prowess.
+XXX hunts with a bow, while YYY hunts in the guise of a fox.
+
+(Mage) XXX and YYY are childhood friends.
+XXX is a druid, whereas YYY is an augur.
+YYY is skilled at detecting spirit bonds,
+and may help units that lack one to find theirs.
+
+(Warrior) XXX and YYY served in an army together.
+They are known for their their ability to magically enhance their
+speed, strength, to appear from nowhere, etc.
+
+\paragraph{Pretender Abilities}
+
+The Oshu pick two pretender avatars,
+which awaken at the same time.
+
+\subsection{The Kairoth}
+\paragraph{Blurb}
+
+The Kairoth are expert sea men.
+They revere knowledge and are frequently capable of some level of augery.
+
+They believe the world was created of water swallowed by the Unnamed Fish God,
+and will end when the water has left the fish's stomach.
+
+\paragraph{Characters}
+
+\subsection{The Duru}
+\paragraph{Blurb}
+
+The Duru worship trees.
+The strongest and wisest trees come to life to protect the villagers.
+The very wisest among the trees have an ability to grant wishes.
+
+\paragraph{Pretender}
+
+Pretender gains the wish ability?
+Wishes of the form ``TAG [GETS LOSES] STATUS.''
+
+\paragraph{Characters}
+
+\subsection{The Ilun}
+\paragraph{Blurb}
+
+The people of Ilune began worship of their God-King
+after he returned from the land of death.
+Fanatics sacrifice themselves in his name
+so that he may harness their power to hold his death at bay.
+They live in the desert, so their hydromancers are particularly skilled.
+
+\paragraph{Characters}
+
+\paragraph{Units}
+
+The Ilune have priests with the blood link ability.
+As long as they are on the field,
+all damage to the pretender is redirected to them.
+
+\subsection{Not Satanists}
+\paragraph{Blurb}
+
+Believes the world was made by a selfish creator in order to have subjects to rule.
+A host of angles banded together to overthrow him.
+The war rages on, the angels now locked in an eternal struggle to protect humanity.
+
+\paragraph{Characters}
+
+(Mage?) Jayamati Simha (change) was sent
+by the Rebellious Host to advise an ancient king.
+Upon the king's death it was not summoned back to heaven,
+so it now wanders the planet.
+
+(Warrior) XXX is an ancient king whose reign saw
+the tribe's kingdom expand to half a continent.
+He was legendary for his strength and combat prowess.
+He died when he was betrayed by his wife, stealing his strength.
+Even with his strength gone,
+he was able to kill 400 men before his enemies could land a killing blow.
+
+(Mage) XXX is a prophet who lives deep in the jungle
+and speaks directly with angels.
+
+\paragraph{Pretender Abilities}
+
+The XXX's pretender gains divine purity,
+which prevents the addition of further status effects.
+
+\subsection{Not Amazons}
+\paragraph{Blurb}
+
+This cult consists entirely of women.
+They revere a goddess of change (the moon/seasons/similar)
+who gives them shape-shifting abilities.
+She leads a large number of non-human followers in her cult,
+including amaroks, tariaksuq, and bears.
+
+\paragraph{Characters}
+
+(Leader) Big Bear, a massive kodiak bear, is the high priestess of the cult.
+She does not talk, even when in human form, because bears don't talk.
+Nonetheless, her guidance has lead her people to unprecedented strength.
+
+(Mage) If Big Bear is the brains behind the cult, then XXX is the face.
+no one knows her original form, she has never shifted back out of
+the radiantly beautiful human form she took upon after joining.
+She serves as ambassador to other groups, leading negotioations,
+and also leads any public rituals the cult performs.
+
+(Spy) XXX the Tariaksuq leads the cult's recruiting efforts,
+She sneaks into cities, looking for women who are "unhappy with their lot",
+and offers them a chance at a better life.
+
+\paragraph{Pretender}
+
+Choose a second avatar while making the pretender.
+The pretender can switch to this body and back at will.
+
+\subsection{Solipsia}
+\paragraph{Blurb}
+
+\emph{Much like the future, the past is unknowable, and inconsequential.}
+The Solipsians believe the world to be illusory.
+As such, they are very capable illusionists.
+Their soldiers are fearless,
+as they believe they already walk the land of the dead (i.e.\ our land).
+% as death in this world is but waking in the other.
+They are skeletons.
+
+\paragraph{Characters}
+
+\paragraph{Pretender Abilities}
+
+The XXX's pretender gains scattered reality.
+At the start of combat create four illusory copies of the pretender.
+They may freely exchange places with any of their illusions,
+including from other abilities, during their turn.
+If an illusion is attacked, it is immediately destroyed.
+
+\paragraph{Units}
+
+This unit creates an illusion of himself.
+If he wishes to dissimilate the true him,
+he can exchange places with the illusion.
+
+\subsection{Animal Peeps}
+\paragraph{Blurb}
+
+This tribe is cursed.
+In order to break the curse,
+they treat every living creature with reverence.
+
+\paragraph{Characters}
+
+\subsection{Clay Guys}
+\paragraph{Blurb}
+
+The residents of this village are protected by
+giant clay bodies burried around the village.
+
+\paragraph{Characters}
+
+\section{Pretenders}
+
+Pretenders are built from three parts,
+their tribe, avatar, and aspect.
+Each tribe has a limited number of avatars to choose from,
+and each avatar has a limited number of aspects.
+Names are avatar, aspect, and then tribe,
+as in Persephone, Lady of the Underwold, Godess of the Greeks.
+
+Beneficial abilities should only be able to target believers,
+the nation's native troops.
+
+Avoid superset abilities, e.g.\ lesser/greater thing.
+Builds should go all in, or not in at all.
+
+Abilities should never be able to be toned down.
+If a god-like being shows up to destroy shit,
+you're going to get a god-like level of destruction.
+
+It should be impossible (or very very difficult) to kill a pretender
+without specially preparing for it.
+
+\begin{enumerate}
+	\item As One -- so long as any of your units have hitpoints,
+	      none of them can die
+	\item Awe -- this unit cannot be directly targeted
+	\item Beguile -- convert a unit and turn it into a believer
+	\item Beautiful -- any eyes which see this pretender
+	      refuse to see anything else ever again
+	\item Dyad -- this pretender has a second avatar (with its own aspect)
+	      they may switch to at will
+	\item Gather Pain -- gain stats per dead ally (or per nearby dead unit?).
+	\item Lucky -- always get max rolls
+	\item Perfection -- no one can measure up to this pretender,
+	      they always have perfect stats (all are +6es)
+	\item Protector -- this pretender intercepts any attack on a believer
+	      which would have been fatal
+	\item Pure -- this pretender cannot gain status effects % too similar to awe?
+	\item Reaper -- gain ability that instantly kills target
+	\item Scattered Reality --
+	      At the start of combat create four illusory copies of the pretender.
+	      They may freely exchange places with any of their illusions,
+	      including from other abilities, during their turn.
+	      If an illusion is attacked, it is immediately destroyed.
+	\item Share Pain -- transfer damage to nearby allies
+	\item Teleportation -- allows instant movement to any area % too similar to scattered reality?
+	\item Twins -- this pretender has a twin, an identical avatar.
+	      Aspects may differ. % it is fitting that there be two twin abilities
+\end{enumerate}
+
+The pretenders begins in exile,
+imprisoned by the old omnipotence.
+
+This pretender was put in an enchanted slumber,
+rather than imprisoned.
+Their faction may sacrifice units, theirs and others', to awaken him.
+Each month, he wakes up if, e.g., 2d6 + total devotion sacrificed > 2d6 + 50.
+
+The Ugly God  was once beautiful,
+but repeatedly betrayed the gods to bring gifts to humanity,
+being disfigured in a new way each time as punishment.
+
+\begin{enumerate}
+	\item Holy tapestry that's carried around,
+	      like the ark of the covenant.
+	      Buffs nearby believers?
+	\item Flying heavenly city.
+	      Believers that die in battle \emph{to an enemy}
+	      ascend to the city and give it strength.
+	\item Shapeshifter, can transform into any creature.
+	      Include creatures not found elsewhere in the game
+	      to show off how many forms he can take, and add flavor to the world?
+	      Portrait is randomly chosen each time it's shown.
+\end{enumerate}
+
+This pretender is a dead god, a former omniscience (i.e.\ a previous winner).
+He reaches into the mortal realm to effect his resurrection,
+and to ensure his return to his rightful place.
+
+A skeletal patron of growth and fertility,
+who sacrifices his essence to bring life to the world.
+Maybe minus max health for plus economy?
+Portrait should go from woman to skeleton as ability is used.
+
+\section{Items}
+
+\begin{enumerate}
+	\item Runegold
+\end{enumerate}
+
+\clearpage
+
+\section{Scenarios}
+
+\subsection{First scenario/tutorial}
+You are the old omniscience.
+Kill as many usurpers as you can before being overwhelmed.
+
+\paragraph{Prompt.}
+Your servants have rebelled,
+taken your power as their own,
+declared themselves gods.
+Their numbers overwhelm you,
+but the scantest fraction of your power blows them as dust into eternity.
+Yet, as millennia pass, even your strength may falter,
+succumb to their unending tide.
+Do not yield, but unmake as many usurpers and their allies
+as your remaining divinity allows.
+Their treachery shall not be rewarded.
+
+% \paragraph{Teaches.}
+% How to move a unit,
+% how to use abilities.
+%
+% \paragraph{Description.}
+% The omnicience is trapped in his now-ruined palace.
+% There are many units on the map,
+% including many pretenders.
+% Each turn more spawn.
+% The fewer remain, the more spawn
+% and the more powerful they are.
+% The player controls the omnicience.
+% His abilities include unravel reality
+% (instantly kills anything within a radius around him)
+
+\paragraph{Win condition.}
+The omnicience falls below a health threshold.
+
+% \paragraph{Score tracked.}
+% Number of kills.
+% Legendary heros count for one point,
+% userpers for ten.
+
+\subsection{Second scenario/tutorial}
+You and your allies have gravely wounded the ancient omnicience.
+He must die.
+
+\paragraph{Prompt.}
+You have weakened the omniscience.
+Yet even weak, even flailing blindly in pain,
+the omniscience is more powerful than ten of the so-called new gods.
+Wave after wave of gods and wave after wave of their champions
+crash against his might.
+Now, five hundred years after his first sign of weakness,
+his pace has slowed.
+Reality does not unravel in his presence.
+Mortals may gaze upon him without going blind.
+He is close to death.
+Finish him.
+
+% \paragraph{Teaches.}
+% How to move leaders with cohorts.
+% How to manage multiple units.
+% How to use abilities.
+%
+% \paragraph{Description.}
+% The omnicience is trapped in his now-ruined palace.
+% There are many units on the map,
+% including many pretenders.
+% Each turn more spawn.
+% The fewer remain, the more spawn
+% and the more powerful they are.
+% The player controls the usurpers.
+
+\paragraph{Win condition.}
+The omnicience dies.
+
+% \paragraph{Score tracked.}
+% Turns taken.
+
+\subsection{Third scenario/tutorial}
+You have slain the omnipotence,
+and absorbed much of his power.
+Fend off your rivals.
+
+\paragraph{Prompt.}
+You are [NAME1], Slayer of the omnipotence.
+The world [rejoices at your might/trembles before your power].
+As the omnipotence's energies scatter to the world, it rejuvenates,
+[comes to life once more with followers to worship you/%
+		teems with life ready to pass to your realm].
+Yet, all is not certain.
+Your allies of a moment ago are now rivals for this newly won power.
+Chief among them is [NAME2].
+Defeat them, and secure your place in the coming age.
+
+% \paragraph{Teaches.}
+% The immediate precursor era to the game's setting.
+% Tactical combat with more than one enemy force.
+% The use of terrain features.
+% Potentially that terrain features are destructible.
+%
+% \paragraph{Description.}
+% Player is given control of the unit which landed the killing blow.
+% It becomes a pretender if it is not already.
+% The player controls the pretender and their cohort on a tactical map.
+% There are many forces,
+% but other than the player and their target,
+% there are no pretenders.
+% Or, all other pretenders are severely weakened.
+% Standing near the omnipitence's body
+% greatly boosts a unit's power.
+
+\paragraph{Win condition.}
+Kill [NAME2].
+
+% \paragraph{Score tracked.}
+% Number of units surviving at scenario end.
+
+\subsection{Fourth scenario/tutorial}
+
+You have gravely wounded your enemies.
+They hide nearby licking their wounds.
+Kill them all.
+
+\paragraph{Prompt.}
+Not every rival has the decency to die.
+Some scatter to the winds,
+lick their wounds,
+and build their forces against you.
+They would wait until you are weak,
+and strike out to replace you.
+This cannot be tolerated.
+Root them out, wherever they may be,
+and show them the price of defiance.
+
+% \paragraph{Teaches.}
+% Army movement on strategic map.
+% Interaction between tactical and strategic maps.
+%
+% \paragraph{Description.}
+% Player controls a single army.
+% Moves it around the map to attack other pretenders' armies.
+
+\paragraph{Win condition.}
+Kill three pretenders located in different provinces.
+
+% \paragraph{Score tracked.}
+% Number of units surviving at scenario end?
+% Turns taken?
+
+\subsection{Fifth scenario/tutorial}
+Expand your reach across the continent.
+
+\paragraph{Prompt.}
+You have killed all those who dared oppose you,
+and rewarded your loyal believers.
+You are the undisputed god of your lands.
+Yet in distant realms,
+other pretenders have done the same.
+Build your strength,
+and invade their lands.
+Prove that you alone deserve godhood.
+
+% \paragraph{Description.}
+% Starts a new game on a tiny map,
+% starting with the pretender and units from the previous scenario.
+
+\paragraph{Win condition.}
+Same as normal to win a game.
+Kill all other pretenders,
+or control sufficiently many holy sites,
+or force all other pretenders to declare fealty to you.
+
+\end{document}
