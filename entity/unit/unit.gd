@@ -46,7 +46,6 @@ func _ready() -> void:
 	_init_sprite()
 	_init_frame()
 	Roster.register(self)
-#	move_adjacent(cell)
 
 func _process(delta: float) -> void:
 	pf2d.progress += leader.animation_speed * delta

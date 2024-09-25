@@ -2,13 +2,9 @@ extends Resource
 
 class_name Grid
 
-const cell_size := Vector2i(256, 256)
+const cell_size := Vector2i(128, 128)
 static var rows: int = 15
 static var cols: int = 15
-# A unit with movement m can move 100*m + fudge distance each turn.
-# Also added to radii, etc. to make shapes more circular.
-# const fudge: int = 43
-# var terrain: Terrain
 
 static func px_to_cell(v: Vector2i) -> Vector2i:
 	return v / cell_size
@@ -19,6 +15,17 @@ static func cell_to_px(v: Vector2i) -> Vector2i:
 static func in_bounds(cell: Vector2i) -> bool:
 		return cell.x >= 0 and cell.y >= 0 \
 			and cell.x < cols and cell.y < rows
+
+static func clamp(cell: Vector2i) -> Vector2i:
+	if cell.x < 0:
+		cell.x = 0
+	elif cell.x >= cols:
+		cell.x = cols - 1
+	if cell.y < 0:
+		cell.y = 0
+	elif cell.y >= rows:
+		cell.y = rows - 1
+	return cell
 
 static func neighbors(cell: Vector2i) -> Array[Vector2i]:
 	var out: Array[Vector2i]

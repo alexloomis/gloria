@@ -5,9 +5,7 @@ extends Node
 
 var terrain: Dictionary[Vector2i, TILE]
 
-#var tile_data: Array[PackedScene] = [preload("res://map/tile/obstacle.tscn"),
-#preload("res://map/tile/grass.tscn"),
-#preload("res://map/tile/water.tscn")]
+const IMPASSIBLE: int = 1_000_000
 
 enum TILE {OBSTACLE, GRASS, WATER}
 

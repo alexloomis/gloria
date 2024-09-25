@@ -5,14 +5,21 @@ class_name Pathfinder
 var astar: AStarGrid2D = AStarGrid2D.new()
 var terrain_data: Dictionary[Terrain.TILE, int]
 
-func cost(cell: Vector2i) -> int:
-	var type: Terrain.TILE = Terrain.terrain[cell]
-	return terrain_data.get(type, -1)
+func _init() -> void:
+	Roster.registered.connect(_on_registered)
+	Roster.deregistered.connect(_on_deregistered)
 
+func cost(cell: Vector2i) -> int:
+	if not Grid.in_bounds(cell):
+		return Terrain.IMPASSIBLE
+	var type: Terrain.TILE = Terrain.terrain[cell]
+	return terrain_data.get(type, Terrain.IMPASSIBLE)
+
+# Can we walk on this cell / could we if it were unoccupied?
 func passable(cell: Vector2i) -> bool:
 	if not Grid.in_bounds(cell):
 		return false
-	return cost(cell) > -1
+	return cost(cell) < Terrain.IMPASSIBLE
 
 # Call after changing Grid, region, cols, or rows
 func update() -> void:
@@ -24,17 +31,21 @@ func update() -> void:
 	astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
 	astar.update()
 	for cell: Vector2i in Terrain.terrain:
-		if cost(cell) > -1:
-			astar.set_point_weight_scale(cell, cost(cell))
-		else:
-			astar.set_point_solid(cell)
+		astar.set_point_weight_scale(cell, cost(cell))
+	for loc: Vector2i in Roster.roster:
+		block(loc)
 
 func block(cell: Vector2i) -> void:
-	astar.set_point_solid(cell)
+	astar.set_point_weight_scale(cell, Terrain.IMPASSIBLE)
 
 func clear(cell: Vector2i) -> void:
-	if passable(cell):
-		astar.set_point_solid(cell, false)
+	astar.set_point_weight_scale(cell, cost(cell))
+
+func _on_registered(cell: Vector2i) -> void:
+	block(cell)
+
+func _on_deregistered(loc: Vector2i) -> void:
+	clear(loc)
 
 func find(from: Vector2i, to: Vector2i) -> PackedVector2Array:
 	return astar.get_id_path(from, to)
@@ -42,11 +53,11 @@ func find(from: Vector2i, to: Vector2i) -> PackedVector2Array:
 func find_px(from: Vector2i, to: Vector2i) -> PackedVector2Array:
 	return astar.get_point_path(from, to)
 
+# Can we actually walk on this cell?
 func navigable(cell: Vector2i) -> bool:
-	if Grid.in_bounds(cell):
-		return not astar.is_point_solid(cell)
-	else:
+	if not Grid.in_bounds(cell):
 		return false
+	return astar.get_point_weight_scale(cell) < Terrain.IMPASSIBLE
 
 func neighbors(cell: Vector2i) -> Array[Vector2i]:
 	return Grid.neighbors(cell)
@@ -57,7 +68,7 @@ func total_cost(path: PackedVector2Array) -> int:
 		total += cost(cell)
 	return total
 
-func costs(from: Vector2i, max_cost: int = 100_000) -> Dictionary[Vector2i, int]:
+func costs(from: Vector2i, max_cost: int = Terrain.IMPASSIBLE - 1) -> Dictionary[Vector2i, int]:
 	var checked: Dictionary[Vector2i, int] = {}
 	var reached: Dictionary[Vector2i, int] = {from: 0}
 	while not reached.is_empty():
@@ -66,7 +77,7 @@ func costs(from: Vector2i, max_cost: int = 100_000) -> Dictionary[Vector2i, int]
 		var cell: Vector2i = reached.find_key(best_cost)
 		# Compute costs to cell's reachable neighbors
 		for n: Vector2i in neighbors(cell):
-			if passable(n) and (not n in checked):
+			if passable(n) and not n in checked:
 				var c: int = best_cost + cost(n)
 				if n in reached:
 					if c < reached[n]: # know: reached[n] <= max_cost

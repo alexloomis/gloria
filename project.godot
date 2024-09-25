@@ -10,14 +10,14 @@ config_version=5
 
 [application]
 
-config/name="Eternal Revolution"
+config/name="Gloria in Æternum"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
 
 Roster="*res://map/roster.gd"
-Terrain="*res://map/terrain.gd"
+Terrain="*res://map/grid/terrain.gd"
 Settings="*res://settings/settings.gd"
 
 [debug]
