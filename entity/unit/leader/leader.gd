@@ -25,13 +25,11 @@ func _ready() -> void:
 
 func _init_pf() -> void:
 	pf = Pathfinder.new()
-	pf.terrain_data = terrain_data
 	pf.update()
 
 func _init_nav() -> void:
 	nav = Navigator.new()
-	nav.leader = self
-	nav.pf = pf
+	nav.reset(self)
 
 func _instantiate_followers() -> void:
 	followers.clear()
@@ -49,7 +47,7 @@ func _place_followers() -> void:
 		var placed: bool = false
 		while not placed:
 			var candidate: Vector2i = cell + formation.get_tile(idx)
-			if pf.navigable(candidate):
+			if Grid.in_bounds(candidate) and pf.is_clear(candidate):
 				follower.cell = candidate
 				placed = true
 			idx += 1

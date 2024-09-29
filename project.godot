@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 Roster="*res://map/roster.gd"
 Terrain="*res://map/grid/terrain.gd"
 Settings="*res://settings/settings.gd"
+Util="*res://util/util.gd"
 
 [debug]
 

@@ -2,7 +2,7 @@ extends Resource
 
 class_name Grid
 
-const cell_size := Vector2i(128, 128)
+const cell_size := Vector2i(256, 256)
 static var rows: int = 15
 static var cols: int = 15
 

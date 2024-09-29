@@ -2,99 +2,97 @@ extends Resource
 
 class_name Pathfinder
 
-var astar: AStarGrid2D = AStarGrid2D.new()
-var terrain_data: Dictionary[Terrain.TILE, int]
+# Is the tile clear?
+# Does it have an ignorable obstruction? (E.g. I have trample.)
+# Is the tile passible but not stoppable? (E.g. I have fly.)
+# Is it blocked?
+enum BLOCK_LEVEL {CLEAR = 0, IGNORE = 10, PASS_THROUGH = 20, BLOCKED = 30}
 
-func _init() -> void:
-	Roster.registered.connect(_on_registered)
-	Roster.deregistered.connect(_on_deregistered)
+var _cells: Dictionary[Vector2i, CellInfo]
+var _terrain_data: Dictionary[Terrain.TILE, int]
 
-func cost(cell: Vector2i) -> int:
-	if not Grid.in_bounds(cell):
-		return Terrain.IMPASSIBLE
-	var type: Terrain.TILE = Terrain.terrain[cell]
-	return terrain_data.get(type, Terrain.IMPASSIBLE)
-
-# Can we walk on this cell / could we if it were unoccupied?
-func passable(cell: Vector2i) -> bool:
-	if not Grid.in_bounds(cell):
-		return false
-	return cost(cell) < Terrain.IMPASSIBLE
-
-# Call after changing Grid, region, cols, or rows
 func update() -> void:
-	astar.clear()
-	astar.region = Rect2i(0, 0, Grid.cols, Grid.rows)
-	astar.cell_size = Grid.cell_size
-	astar.default_compute_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
-	astar.default_estimate_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
-	astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
-	astar.update()
-	for cell: Vector2i in Terrain.terrain:
-		astar.set_point_weight_scale(cell, cost(cell))
-	for loc: Vector2i in Roster.roster:
-		block(loc)
+	_cells.clear()
+	for x in Grid.cols:
+		for y in Grid.rows:
+			var cell: Vector2i = Vector2i(x,y)
+			_cells[cell] = CellInfo.new()
+			var tile: Terrain.TILE = Terrain.terrain[cell]
+			_cells[cell].move_cost = _terrain_data.get(tile, Terrain.IMPASSIBLE)
+			if Roster.roster.has(cell):
+				_on_register(cell)
+	Roster.registered.connect(_on_register)
+	Roster.deregistered.connect(_on_deregister)
 
-func block(cell: Vector2i) -> void:
-	astar.set_point_weight_scale(cell, Terrain.IMPASSIBLE)
-
-func clear(cell: Vector2i) -> void:
-	astar.set_point_weight_scale(cell, cost(cell))
-
-func _on_registered(cell: Vector2i) -> void:
+func _on_register(cell: Vector2i) -> void:
 	block(cell)
 
-func _on_deregistered(loc: Vector2i) -> void:
-	clear(loc)
+func _on_deregister(cell: Vector2i) -> void:
+	clear(cell)
 
-func find(from: Vector2i, to: Vector2i) -> PackedVector2Array:
-	return astar.get_id_path(from, to)
+func block(cell: Vector2i, block_level: BLOCK_LEVEL = BLOCK_LEVEL.BLOCKED) -> void:
+	_cells[cell].block_level = block_level
 
-func find_px(from: Vector2i, to: Vector2i) -> PackedVector2Array:
-	return astar.get_point_path(from, to)
+func clear(cell: Vector2i) -> void:
+	block(cell, BLOCK_LEVEL.CLEAR)
 
-# Can we actually walk on this cell?
-func navigable(cell: Vector2i) -> bool:
-	if not Grid.in_bounds(cell):
-		return false
-	return astar.get_point_weight_scale(cell) < Terrain.IMPASSIBLE
+func is_blocked(cell: Vector2i, block_level: BLOCK_LEVEL = BLOCK_LEVEL.CLEAR) -> bool:
+	return _cells[cell].block_level > block_level
 
-func neighbors(cell: Vector2i) -> Array[Vector2i]:
-	return Grid.neighbors(cell)
+func is_clear(cell: Vector2i, block_level: BLOCK_LEVEL = BLOCK_LEVEL.CLEAR) -> bool:
+	return not is_blocked(cell, block_level)
 
-func total_cost(path: PackedVector2Array) -> int:
+func neighbors(cell: Vector2i, block_level: BLOCK_LEVEL = BLOCK_LEVEL.CLEAR) -> Array[Vector2i]:
+	var ns: Array[Vector2i] = Grid.neighbors(cell)
+	var _clear: Callable = func (v: Vector2i) -> bool:
+		return is_clear(v, block_level)
+	ns.filter(_clear)
+	return ns
+
+func cost(cell: Vector2i, block_level: BLOCK_LEVEL = BLOCK_LEVEL.CLEAR) -> int:
+	if not _cells.has(cell):
+		return Terrain.IMPASSIBLE
+	if is_blocked(cell, block_level):
+		return Terrain.IMPASSIBLE
+	return _cells[cell].move_cost
+
+@warning_ignore("shadowed_variable")
+func total_cost(path: Array[Vector2i], block_level: BLOCK_LEVEL = BLOCK_LEVEL.CLEAR) -> int:
 	var total: int = 0
-	for cell in path.slice(1):
-		total += cost(cell)
+	for cell: Vector2i in path.slice(1):
+		total += cost(cell, block_level)
 	return total
 
-func costs(from: Vector2i, max_cost: int = Terrain.IMPASSIBLE - 1) -> Dictionary[Vector2i, int]:
+func distances(cell: Vector2i, block_level: BLOCK_LEVEL = BLOCK_LEVEL.CLEAR, max_cost: int = Terrain.IMPASSIBLE - 1) -> Dictionary[Vector2i, int]:
 	var checked: Dictionary[Vector2i, int] = {}
-	var reached: Dictionary[Vector2i, int] = {from: 0}
+	var reached: Dictionary[Vector2i, int] = {cell: 0}
 	while not reached.is_empty():
 		# Find cell with a minimal cost
 		var best_cost: int = reached.values().min()
-		var cell: Vector2i = reached.find_key(best_cost)
+		var new_cell: Vector2i = reached.find_key(best_cost)
 		# Compute costs to cell's reachable neighbors
-		for n: Vector2i in neighbors(cell):
-			if passable(n) and not n in checked:
-				var c: int = best_cost + cost(n)
+		for n: Vector2i in neighbors(new_cell, block_level):
+			if not n in checked:
+				var c: int = best_cost + cost(n, block_level)
 				if n in reached:
 					if c < reached[n]: # know: reached[n] <= max_cost
 						reached[n] = c
 				elif c <= max_cost:
 					reached[n] = c
 		# Move cell to checked
-		checked[cell] = best_cost
-		reached.erase(cell)
+		checked[new_cell] = best_cost
+		reached.erase(new_cell)
 	return checked
 
-# Returns array sorted closest to furthest.
-func closest_neighbors(from: Vector2i, to: Vector2i, allow_self: bool = true) -> Array[Vector2i]:
-	var ns: Array[Vector2i]
-	if allow_self:
-		ns.append(from)
-	ns.append_array(neighbors(from).filter(passable))
-	var costs_: Dictionary[Vector2i, int] = costs(to)
-	ns.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return costs_[a] < costs_[b])
-	return ns
+# block_level is the highest block level we consider to be clear
+func path(from: Vector2i, to: Vector2i, block_level: BLOCK_LEVEL = BLOCK_LEVEL.CLEAR) -> Array[Vector2i]:
+	var out: Array[Vector2i]
+	var dists: Dictionary[Vector2i, int] = distances(to, block_level)
+	if not dists.has(from):
+		return out
+	out.append(from)
+	while out[-1] != to:
+		var current: Vector2i = out[-1]
+		var ns: Array[Vector2i] = neighbors(current, block_level)
+		out.append(Util.min_among(ns, dists))
+	return out
