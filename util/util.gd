@@ -1,8 +1,10 @@
 extends Node
 
-func min_among(arr: Array[Vector2i], dict: Dictionary[Vector2i, int]) -> Vector2i:
-	var vec: Vector2i
-	var best: int = TYPE_MAX
+const BIG_INT = 2**32
+
+func min_among(dict: Dictionary[Vector2i, int], arr: Array[Vector2i] = dict.keys()) -> Vector2i:
+	var vec: Vector2i = Vector2i(-1, -1)
+	var best: int = BIG_INT
 	for v in arr:
 		if dict[v] < best:
 			vec = v

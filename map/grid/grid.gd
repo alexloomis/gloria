@@ -3,8 +3,8 @@ extends Resource
 class_name Grid
 
 const cell_size := Vector2i(256, 256)
-static var rows: int = 15
-static var cols: int = 15
+static var rows: int = 50
+static var cols: int = 50
 
 static func px_to_cell(v: Vector2i) -> Vector2i:
 	return v / cell_size

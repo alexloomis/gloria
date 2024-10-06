@@ -1,0 +1,9 @@
+[package]
+name = "cbs-lawt"
+version = "0.1.0"
+edition = "2021"
+authors = ["Alex Loomis <atloomis@math.arizona.edu>"]
+description = "A utility to help find reasonable pedal changes."
+
+[dependencies]
+grid = "0.15.0"

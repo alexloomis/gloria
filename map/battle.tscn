@@ -1,12 +1,21 @@
-[gd_scene load_steps=6 format=3 uid="uid://smjr44utvxtk"]
+[gd_scene load_steps=9 format=3 uid="uid://smjr44utvxtk"]
 
 [ext_resource type="Script" path="res://map/battle.gd" id="1_omlya"]
 [ext_resource type="Script" path="res://map/camera.gd" id="1_u6xvg"]
 [ext_resource type="Texture2D" uid="uid://bftjvuchryay3" path="res://textures_test/ph_background.jpg" id="3_kgd5d"]
 [ext_resource type="PackedScene" uid="uid://occ4f3kwgxqv" path="res://entity/DEBUG/Commander.tscn" id="4_6lqbp"]
+[ext_resource type="PackedScene" uid="uid://dq8bwfsc5ltul" path="res://entity/DEBUG/Knight.tscn" id="5_anury"]
+[ext_resource type="Script" path="res://shape/formation/column.gd" id="5_wa8g8"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_y0vd2"]
 size = Vector2(8192, 5376)
+
+[sub_resource type="Resource" id="Resource_c4pa7"]
+script = ExtResource("5_wa8g8")
+depth = 3
+spread = 0
+mirror = false
+rotation = 0
 
 [node name="Battle" type="Node"]
 script = ExtResource("1_omlya")
@@ -46,6 +55,11 @@ shape = SubResource("RectangleShape2D_y0vd2")
 unique_name_in_owner = true
 
 [node name="Commander" parent="IgnoresCamera/Units/Player" instance=ExtResource("4_6lqbp")]
+speed = 10
+formation = SubResource("Resource_c4pa7")
+follower_data = Dictionary[PackedScene, int]({
+ExtResource("5_anury"): 29
+})
 
 [node name="FollowsCamera" type="CanvasLayer" parent="."]
 

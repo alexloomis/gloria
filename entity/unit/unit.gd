@@ -2,6 +2,7 @@ extends Node2D
 
 class_name Unit
 
+signal left_cell
 signal finished_moving
 
 @export var disp_name: StringName
@@ -22,7 +23,11 @@ var sprite: Sprite2D
 var cell: Vector2i:
 	set(val):
 		Roster.deregister(self)
+		left_cell.emit()
 		position = Grid.cell_to_px(val)
+		if cell in Roster.roster:
+			var occupant: Unit = Roster.roster[cell]
+			await occupant.left_cell
 		Roster.register(self)
 	get:
 		return Grid.px_to_cell(position)
