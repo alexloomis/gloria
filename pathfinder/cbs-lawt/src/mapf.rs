@@ -1,35 +1,10 @@
+use crate::grid_ext::GridExt;
 use crate::prelude::*;
 use grid::Grid;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::ops::Sub;
 use std::rc::Rc;
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct ScoredCell {
-    // Cost including heuristic, what time do we think we will arrive?
-    cost: usize,
-    // Time of earliest departure, cost without heuristic
-    time: usize,
-    cell: Cell,
-    prev: Option<Rc<ScoredCell>>,
-}
-
-#[derive(Clone, Copy)]
-pub struct Constraint {
-    // Unit ID is its starting coord
-    pub uid: Cell,
-    pub cell: Cell,
-    pub time: usize,
-}
-
-pub struct Conflict {
-    // Unit ID is its starting coord
-    pub uid1: Cell,
-    pub uid2: Cell,
-    pub cell: Cell,
-    pub time: Cell,
-}
 
 fn filter_constraints(start: Cell, constraints: &[Constraint]) -> Vec<Constraint> {
     let mut out = Vec::with_capacity(constraints.len());
@@ -42,9 +17,15 @@ fn filter_constraints(start: Cell, constraints: &[Constraint]) -> Vec<Constraint
 }
 
 // We assume the constraints have already been filtered
-fn check_constraints(scored_cell: &ScoredCell, constraints: &[Constraint]) -> bool {
+fn check_constraints(
+    scored_cell: &ScoredCell,
+    prev_departure: usize,
+    constraints: &[Constraint],
+) -> bool {
     for constraint in constraints {
-        if scored_cell.cell == constraint.cell && scored_cell.time == constraint.time {
+        let relevant_cell = scored_cell.cell == constraint.cell;
+        let relevant_time = prev_departure < constraint.time && constraint.time <= scored_cell.time;
+        if relevant_cell && relevant_time {
             return false;
         }
     }
@@ -55,7 +36,7 @@ fn check_against(candidate: &ScoredCell, heap: &BinaryHeap<Reverse<ScoredCell>>)
     for cell in heap {
         if cell.0.cost >= candidate.cost {
             break;
-        } else if cell.0.cell == candidate.cell {
+        } else if cell.0.cell == candidate.cell && cell.0.time == candidate.time {
             return false;
         }
     }
@@ -66,7 +47,7 @@ fn check_against_rc(candidate: &ScoredCell, heap: &BinaryHeap<Reverse<Rc<ScoredC
     for cell in heap {
         if cell.0.cost >= candidate.cost {
             break;
-        } else if cell.0.cell == candidate.cell {
+        } else if cell.0.cell == candidate.cell && cell.0.time == candidate.time {
             return false;
         }
     }
@@ -87,9 +68,12 @@ fn reconstruct_path(last: ScoredCell) -> Vec<ScoredCell> {
     path.push(last.clone());
     let mut prev = last;
     while let Some(scored_cell) = prev.prev {
+        if prev.cell != scored_cell.cell {
+            path.push(Rc::unwrap_or_clone(scored_cell.clone()));
+        }
         prev = Rc::unwrap_or_clone(scored_cell.clone());
-        path.push(Rc::unwrap_or_clone(scored_cell));
     }
+    path.reverse();
     path
 }
 
@@ -113,7 +97,7 @@ impl MAPF {
             if self.grid.in_bounds(*cell) && self.grid.is_clear(*cell) {
                 self.grid.set_blocked(*cell, true)
             } else {
-                panic!("Region is not clear!")
+                panic!("Cell {:?} is not clear!", cell)
             }
         }
         for cell in cells {
@@ -128,6 +112,20 @@ impl MAPF {
                 if *cost < self.heuristic[(x, y)] {
                     self.heuristic[(x, y)] = *cost
                 }
+            }
+        }
+    }
+
+    fn verify_connectivity(&self) {
+        let distances = self.grid.djikstra(self.origins[0]);
+        for origin in &self.origins {
+            if distances[*origin] == usize::MAX {
+                panic!("Origin {:?} not reachable!", origin)
+            }
+        }
+        for destination in &self.destinations {
+            if distances[*destination] == usize::MAX {
+                panic!("Destination {:?} not reachable!", destination)
             }
         }
     }
@@ -152,6 +150,7 @@ impl MAPF {
         out.verify_destination_count();
         out.verify_cells(&origins);
         out.verify_cells(&destinations);
+        out.verify_connectivity();
         out.generate_heuristic();
         out
     }
@@ -169,7 +168,7 @@ impl MAPF {
             cell: scored_cell.cell,
             prev: Some(Rc::clone(&scored_cell)),
         };
-        if check_constraints(&wait, constraints) {
+        if check_constraints(&wait, scored_cell.time, constraints) {
             succ.push(wait);
         }
         for neighbor in neighbors {
@@ -180,7 +179,7 @@ impl MAPF {
                 cell: neighbor,
                 prev: Some(Rc::clone(&scored_cell)),
             };
-            if check_constraints(&candidate, constraints) {
+            if check_constraints(&candidate, scored_cell.time, constraints) {
                 succ.push(candidate);
             }
         }
@@ -200,7 +199,9 @@ impl MAPF {
         }));
         loop {
             let current = match open.pop() {
-                None => return Vec::new(),
+                None => {
+                    return Vec::new();
+                }
                 Some(Reverse(sc)) => Rc::new(sc),
             };
             closed.push(Reverse(Rc::clone(&current)));

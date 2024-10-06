@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use grid::Grid;
+use std::collections::HashMap;
 use std::ops::Sub;
 
 pub struct GridExt {
@@ -17,11 +18,12 @@ impl GridExt {
     // Effective number of (columns, rows)
     pub fn extent(&self) -> Cell {
         (
-            self.grid.cols().sub(self.unit_size.0) + 1,
-            self.grid.rows().sub(self.unit_size.1) + 1,
+            self.grid.rows().sub(self.unit_size.0) + 1,
+            self.grid.cols().sub(self.unit_size.1) + 1,
         )
     }
 
+    // Accounts for unit size
     pub fn in_bounds(&self, cell: Cell) -> bool {
         cell.0 < self.extent().0 && cell.1 < self.extent().1
     }
@@ -49,9 +51,9 @@ impl GridExt {
         let mut out = Vec::with_capacity(4);
         let candidates = [
             (cell.0 + 1, cell.1),
-            (cell.0 + 1, cell.1),
-            (cell.0.sub(1), cell.1),
-            (cell.0, cell.1.sub(1)),
+            (cell.0, cell.1 + 1),
+            (cell.0.wrapping_sub(1), cell.1),
+            (cell.0, cell.1.wrapping_sub(1)),
         ];
         for candidate in candidates {
             if self.in_bounds(candidate) && self.is_clear(candidate) {
