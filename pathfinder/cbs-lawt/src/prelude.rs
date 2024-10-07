@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::ops::Sub;
 use std::rc::Rc;
 
-pub type Cell = (usize, usize);
+pub type Pair = (usize, usize);
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct CellInfo {
     pub cost: usize,
     pub blocked: bool,
@@ -12,12 +12,12 @@ pub struct CellInfo {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Rect {
-    pub origin: Cell,
-    pub extent: Cell,
+    pub origin: Pair,
+    pub extent: Pair,
 }
 
 impl Rect {
-    pub fn cells(&self) -> Vec<Cell> {
+    pub fn cells(&self) -> Vec<Pair> {
         let mut out = Vec::with_capacity(self.extent.0 * self.extent.1);
         for dx in 0..self.extent.0 {
             for dy in 0..self.extent.1 {
@@ -52,11 +52,11 @@ pub struct ScoredCell {
     pub cost: usize,
     // Time of earliest departure, cost without heuristic
     pub time: usize,
-    pub cell: Cell,
+    pub cell: Pair,
     pub prev: Option<Rc<ScoredCell>>,
 }
 
-pub fn unfold_path(path: Vec<ScoredCell>) -> Vec<Cell> {
+pub fn unfold_path(path: Vec<ScoredCell>) -> Vec<Pair> {
     if path.is_empty() {
         return Vec::new();
     }
@@ -74,21 +74,20 @@ pub fn unfold_path(path: Vec<ScoredCell>) -> Vec<Cell> {
 }
 
 // Currently means the unit's origin is blocked from the tile, not the unit's entire body
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Constraint {
     // Unit ID is its starting coord
-    pub uid: Cell,
-    pub cell: Cell,
-    pub time: usize,
+    pub uid: Pair,
+    pub cell: Pair,
+    pub duration: Pair,
 }
 
-// Maybe time shoule be an interval?
-#[derive(Clone, Copy, Debug)]
-pub struct Conflict {
-    // Unit ID is its starting coord
-    pub uid1: Cell,
-    pub uid2: Cell,
-    pub cell1: Cell,
-    pub cell2: Cell,
-    pub time: usize,
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ConflictInfo {
+    pub uid: Pair,
+    pub cell: Pair,
+    pub stay: Pair,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Conflict(pub ConflictInfo, pub ConflictInfo);

@@ -6,7 +6,7 @@ use std::collections::BinaryHeap;
 use std::ops::Sub;
 use std::rc::Rc;
 
-fn filter_constraints(start: Cell, constraints: &[Constraint]) -> Vec<Constraint> {
+fn filter_constraints(start: Pair, constraints: &[Constraint]) -> Vec<Constraint> {
     let mut out = Vec::with_capacity(constraints.len());
     for constraint in constraints {
         if constraint.uid == start {
@@ -24,7 +24,12 @@ fn check_constraints(
 ) -> bool {
     for constraint in constraints {
         let relevant_cell = scored_cell.cell == constraint.cell;
-        let relevant_time = prev_departure < constraint.time && constraint.time <= scored_cell.time;
+        let relevant_time =
+        // We havent left before the constraint begins
+        constraint.duration.0 <= scored_cell.time
+        &&
+        // We didn't arrive after the constraint ended
+        prev_departure < constraint.duration.1;
         if relevant_cell && relevant_time {
             return false;
         }
@@ -56,7 +61,7 @@ fn check_against_rc(candidate: &ScoredCell, heap: &BinaryHeap<Reverse<Rc<ScoredC
 
 fn may_stop(candidate: &ScoredCell, constraints: &[Constraint]) -> bool {
     for constraint in constraints {
-        if candidate.cell == constraint.cell && candidate.time <= constraint.time {
+        if candidate.cell == constraint.cell && candidate.time <= constraint.duration.1 {
             return false;
         }
     }
@@ -77,11 +82,12 @@ fn reconstruct_path(last: ScoredCell) -> Vec<ScoredCell> {
     path
 }
 
+#[derive(PartialEq, Eq)]
 pub struct MAPF {
     pub grid: GridExt,
-    pub unit_size: Cell,
-    pub origins: Vec<Cell>,
-    pub destinations: Vec<Cell>,
+    pub unit_size: Pair,
+    pub origins: Vec<Pair>,
+    pub destinations: Vec<Pair>,
     pub heuristic: Grid<usize>,
 }
 
@@ -92,7 +98,7 @@ impl MAPF {
         }
     }
 
-    fn verify_cells(&mut self, cells: &[Cell]) {
+    fn verify_cells(&mut self, cells: &[Pair]) {
         for cell in cells {
             if self.grid.in_bounds(*cell) && self.grid.is_clear(*cell) {
                 self.grid.set_blocked(*cell, true)
@@ -131,9 +137,9 @@ impl MAPF {
     }
 
     pub fn init(
-        origins: Vec<Cell>,
-        destinations: Vec<Cell>,
-        unit_size: Cell,
+        origins: Vec<Pair>,
+        destinations: Vec<Pair>,
+        unit_size: Pair,
         grid: Grid<CellInfo>,
     ) -> MAPF {
         let mut out = MAPF {
@@ -186,7 +192,7 @@ impl MAPF {
         succ
     }
 
-    pub fn astar(&self, start: Cell, constraints: &[Constraint]) -> Vec<ScoredCell> {
+    pub fn astar(&self, start: Pair, constraints: &[Constraint]) -> Vec<ScoredCell> {
         let my_constraints = filter_constraints(start, constraints);
         let (x_extent, y_extent) = self.grid.extent();
         let mut closed = BinaryHeap::with_capacity(x_extent * y_extent);
