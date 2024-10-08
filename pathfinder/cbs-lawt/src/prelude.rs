@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::ops::Sub;
 use std::rc::Rc;
 
 pub type Pair = (usize, usize);
@@ -51,7 +50,7 @@ pub struct ScoredCell {
     // Cost including heuristic, what time do we think we will arrive?
     pub cost: usize,
     // Time of earliest departure, cost without heuristic
-    pub time: usize,
+    pub stay: Pair,
     pub cell: Pair,
     pub prev: Option<Rc<ScoredCell>>,
 }
@@ -60,15 +59,12 @@ pub fn unfold_path(path: Vec<ScoredCell>) -> Vec<Pair> {
     if path.is_empty() {
         return Vec::new();
     }
-    let mut time = path[0].time;
-    let mut out = Vec::with_capacity(path[path.len() - 1].time + 1);
+    let mut out = Vec::with_capacity(path[path.len() - 1].stay.1 + 1);
     out.push(path[0].cell);
     for scored_cell in path {
-        let dt = scored_cell.time.sub(time);
-        for _ in 0..dt {
+        for _ in scored_cell.stay.0..=scored_cell.stay.1 {
             out.push(scored_cell.cell);
         }
-        time = scored_cell.time;
     }
     out
 }
@@ -79,7 +75,7 @@ pub struct Constraint {
     // Unit ID is its starting coord
     pub uid: Pair,
     pub cell: Pair,
-    pub duration: Pair,
+    pub stay: Pair,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

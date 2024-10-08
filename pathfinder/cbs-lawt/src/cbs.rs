@@ -62,7 +62,7 @@ impl CBS<'_> {
             cbs.solution.push(vec![ScoredCell {
                 cell: *origin,
                 cost: 0,
-                time: 0,
+                stay: (0, 0),
                 prev: None,
             }]);
         }
@@ -103,20 +103,20 @@ impl CBS<'_> {
             if path.is_empty() {
                 return;
             }
-            if path[path.len() - 1].time > end_time {
-                end_time = path[path.len() - 1].time
+            if path[path.len() - 1].stay.1 > end_time {
+                end_time = path[path.len() - 1].stay.1
             }
         }
         for path in self.solution.iter_mut() {
             let idx = path.len() - 1;
-            path[idx].time = end_time
+            path[idx].stay.1 = end_time
         }
     }
 
     fn find_cost(&mut self, modified: &HashSet<usize>) {
         for idx in modified {
             let path = &self.solution[*idx];
-            let candidate = path[path.len() - 1].time;
+            let candidate = path[path.len() - 1].stay.1;
             if candidate > self.cost {
                 self.cost = candidate
             }
@@ -157,25 +157,21 @@ impl CBS<'_> {
 
     fn add_conflicts(&mut self, modified: &HashSet<usize>) {
         let mut state = Vec::with_capacity(self.solution.len());
-        let p0 = self.solution[0].clone();
-        let end_time = p0[p0.len() - 1].time;
+        let end_time = self.cost;
         for path in &self.solution {
             state.push(ConfState {
                 uid: path[0].cell,
                 idx: 0,
                 cell: path[0].cell,
-                stay: (0, path[0].time),
+                stay: path[0].stay,
             });
-            if path[path.len() - 1].time != end_time {
-                panic!();
-            }
         }
         for time in 1..=end_time {
             // Update states
             let mut moved = vec![false; state.len()];
             for (i, path) in self.solution.iter().enumerate() {
                 let idx = state[i].idx;
-                if time > path[idx].time && idx < path.len() - 1 {
+                if time > path[idx].stay.1 && idx < path.len() - 1 {
                     //println!("{i} moved from {:?} with a stay of {:?} to {:?} with a stay of {:?} at time {time}, generating the conflicts:",
                     //    state[i].cell,
                     //    state[i].stay,
@@ -183,7 +179,7 @@ impl CBS<'_> {
                     //    (path[idx].time + 1, path[idx + 1].time),
                     //);
                     state[i].cell = path[idx + 1].cell;
-                    state[i].stay = (path[idx].time + 1, path[idx + 1].time);
+                    state[i].stay = path[idx + 1].stay;
                     state[i].idx += 1;
                     moved[i] = true;
                 }
@@ -246,12 +242,12 @@ fn naive_generator(cbs: &CBS) -> Vec<Vec<Constraint>> {
     let constraint1 = Constraint {
         uid: conflict.0.uid,
         cell: conflict.0.cell,
-        duration: conflict.1.stay,
+        stay: conflict.1.stay,
     };
     let constraint2 = Constraint {
         uid: conflict.1.uid,
         cell: conflict.1.cell,
-        duration: conflict.0.stay,
+        stay: conflict.0.stay,
     };
     vec![vec![constraint1], vec![constraint2]]
 }

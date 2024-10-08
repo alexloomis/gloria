@@ -17,19 +17,15 @@ fn filter_constraints(start: Pair, constraints: &[Constraint]) -> Vec<Constraint
 }
 
 // We assume the constraints have already been filtered
-fn check_constraints(
-    scored_cell: &ScoredCell,
-    prev_departure: usize,
-    constraints: &[Constraint],
-) -> bool {
+fn check_constraints(scored_cell: &ScoredCell, constraints: &[Constraint]) -> bool {
     for constraint in constraints {
         let relevant_cell = scored_cell.cell == constraint.cell;
         let relevant_time =
         // We havent left before the constraint begins
-        constraint.duration.0 <= scored_cell.time
+        constraint.stay.0 <= scored_cell.stay.1
         &&
         // We didn't arrive after the constraint ended
-        prev_departure < constraint.duration.1;
+        scored_cell.stay.0 <= constraint.stay.1;
         if relevant_cell && relevant_time {
             return false;
         }
@@ -41,7 +37,7 @@ fn check_against(candidate: &ScoredCell, heap: &BinaryHeap<Reverse<ScoredCell>>)
     for cell in heap {
         if cell.0.cost >= candidate.cost {
             break;
-        } else if cell.0.cell == candidate.cell && cell.0.time == candidate.time {
+        } else if cell.0.cell == candidate.cell && cell.0.stay == candidate.stay {
             return false;
         }
     }
@@ -52,7 +48,7 @@ fn check_against_rc(candidate: &ScoredCell, heap: &BinaryHeap<Reverse<Rc<ScoredC
     for cell in heap {
         if cell.0.cost >= candidate.cost {
             break;
-        } else if cell.0.cell == candidate.cell && cell.0.time == candidate.time {
+        } else if cell.0.cell == candidate.cell && cell.0.stay == candidate.stay {
             return false;
         }
     }
@@ -61,7 +57,7 @@ fn check_against_rc(candidate: &ScoredCell, heap: &BinaryHeap<Reverse<Rc<ScoredC
 
 fn may_stop(candidate: &ScoredCell, constraints: &[Constraint]) -> bool {
     for constraint in constraints {
-        if candidate.cell == constraint.cell && candidate.time <= constraint.duration.1 {
+        if candidate.cell == constraint.cell && candidate.stay.0 <= constraint.stay.1 {
             return false;
         }
     }
@@ -69,7 +65,7 @@ fn may_stop(candidate: &ScoredCell, constraints: &[Constraint]) -> bool {
 }
 
 fn reconstruct_path(last: ScoredCell) -> Vec<ScoredCell> {
-    let mut path = Vec::with_capacity(last.time + 1);
+    let mut path = Vec::with_capacity(last.stay.1 + 1);
     path.push(last.clone());
     let mut prev = last;
     while let Some(scored_cell) = prev.prev {
@@ -170,22 +166,22 @@ impl MAPF {
         let mut succ = Vec::with_capacity(neighbors.len() + 1);
         let wait = ScoredCell {
             cost: scored_cell.cost + 1,
-            time: scored_cell.time + 1,
+            stay: (scored_cell.stay.0, scored_cell.stay.1 + 1),
             cell: scored_cell.cell,
             prev: Some(Rc::clone(&scored_cell)),
         };
-        if check_constraints(&wait, scored_cell.time, constraints) {
+        if check_constraints(&wait, constraints) {
             succ.push(wait);
         }
         for neighbor in neighbors {
-            let time = scored_cell.time + self.grid.cost(neighbor);
+            let time = scored_cell.stay.1 + self.grid.cost(neighbor);
             let candidate = ScoredCell {
                 cost: time + self.heuristic[neighbor],
-                time,
+                stay: (scored_cell.stay.1 + 1, time),
                 cell: neighbor,
                 prev: Some(Rc::clone(&scored_cell)),
             };
-            if check_constraints(&candidate, scored_cell.time, constraints) {
+            if check_constraints(&candidate, constraints) {
                 succ.push(candidate);
             }
         }
@@ -199,7 +195,7 @@ impl MAPF {
         let mut open = BinaryHeap::with_capacity(x_extent * y_extent);
         open.push(Reverse(ScoredCell {
             cost: 0,
-            time: 0,
+            stay: (0, 0),
             cell: start,
             prev: None,
         }));
