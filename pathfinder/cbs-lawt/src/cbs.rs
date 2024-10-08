@@ -1,53 +1,11 @@
 use crate::mapf::MAPF;
 use crate::prelude::*;
 use core::panic;
-use std::cmp::max;
 use std::collections::{BinaryHeap, HashSet};
 
 fn rect_conflict(cell1: Pair, cell2: Pair, unit_size: Pair) -> bool {
     let ((x1, y1), (x2, y2), (dx, dy)) = (cell1, cell2, unit_size);
     x1 < x2 + dx && x2 < x1 + dx && y1 < y2 + dy && y2 < y1 + dy
-}
-
-fn check_against(path1: &[ScoredCell], path2: &[ScoredCell], unit_size: Pair) -> Vec<Conflict> {
-    let uid1 = path1[0].cell;
-    let uid2 = path2[0].cell;
-    let mut idx1 = 0;
-    let mut idx2 = 0;
-    let end_time = max(path1[path1.len() - 1].time, path2[path2.len() - 1].time);
-    let mut conflicts = Vec::new();
-    for time in 1..=end_time {
-        let mut changed1 = false;
-        let mut changed2 = false;
-        if time > path1[idx1].time && idx1 < path1.len() - 1 {
-            idx1 += 1;
-            changed1 = true
-        }
-        if time > path2[idx2].time && idx2 < path2.len() - 1 {
-            idx2 += 1;
-            changed2 = true
-        }
-        if changed1 || changed2 {
-            let cell1 = path1[idx1].cell;
-            let cell2 = path2[idx2].cell;
-            if rect_conflict(cell1, cell2, unit_size) {
-                let ci1 = ConflictInfo {
-                    uid: uid1,
-                    cell: cell1,
-                    // TODO:
-                    stay: (time, time),
-                };
-                let ci2 = ConflictInfo {
-                    uid: uid2,
-                    cell: cell2,
-                    // TODO:
-                    stay: (time, time),
-                };
-                conflicts.push(Conflict(ci1, ci2));
-            }
-        }
-    }
-    conflicts
 }
 
 struct ConfState {
@@ -140,6 +98,19 @@ impl CBS<'_> {
         for idx in modified {
             self.solution[*idx] = self.mapf.astar(self.idx_to_unit(*idx), &self.constraints);
         }
+        let mut end_time = 0;
+        for path in &self.solution {
+            if path.is_empty() {
+                return;
+            }
+            if path[path.len() - 1].time > end_time {
+                end_time = path[path.len() - 1].time
+            }
+        }
+        for path in self.solution.iter_mut() {
+            let idx = path.len() - 1;
+            path[idx].time = end_time
+        }
     }
 
     fn find_cost(&mut self, modified: &HashSet<usize>) {
@@ -167,9 +138,27 @@ impl CBS<'_> {
         self.conflicts = retained;
     }
 
+    fn add_if_conflict(&mut self, state_i: &ConfState, state_j: &ConfState) {
+        if rect_conflict(state_i.cell, state_j.cell, self.mapf.unit_size) {
+            let cii = ConflictInfo {
+                uid: state_i.uid,
+                cell: state_i.cell,
+                stay: state_i.stay,
+            };
+            let cij = ConflictInfo {
+                uid: state_j.uid,
+                cell: state_j.cell,
+                stay: state_j.stay,
+            };
+            //println!("{:?}", Conflict(cii, cij));
+            self.conflicts.push(Conflict(cii, cij));
+        }
+    }
+
     fn add_conflicts(&mut self, modified: &HashSet<usize>) {
         let mut state = Vec::with_capacity(self.solution.len());
-        let mut end_time = 0;
+        let p0 = self.solution[0].clone();
+        let end_time = p0[p0.len() - 1].time;
         for path in &self.solution {
             state.push(ConfState {
                 uid: path[0].cell,
@@ -177,62 +166,40 @@ impl CBS<'_> {
                 cell: path[0].cell,
                 stay: (0, path[0].time),
             });
-            if path[path.len() - 1].time > end_time {
-                end_time = path[path.len() - 1].time
+            if path[path.len() - 1].time != end_time {
+                panic!();
             }
         }
         for time in 1..=end_time {
             // Update states
-            let mut changed = vec![false; state.len()];
+            let mut moved = vec![false; state.len()];
             for (i, path) in self.solution.iter().enumerate() {
                 let idx = state[i].idx;
                 if time > path[idx].time && idx < path.len() - 1 {
+                    //println!("{i} moved from {:?} with a stay of {:?} to {:?} with a stay of {:?} at time {time}, generating the conflicts:",
+                    //    state[i].cell,
+                    //    state[i].stay,
+                    //    path[idx + 1].cell,
+                    //    (path[idx].time + 1, path[idx + 1].time),
+                    //);
                     state[i].cell = path[idx + 1].cell;
                     state[i].stay = (path[idx].time + 1, path[idx + 1].time);
                     state[i].idx += 1;
-                    changed[i] = true;
+                    moved[i] = true;
                 }
             }
             // Check for conflicts
-            for (i, trans) in changed.into_iter().enumerate() {
-                if trans {
-                    for j in 0..state.len() {
-                        let unchecked =
-                            |x, y| x < y && (modified.contains(x) || modified.contains(y));
-                        if unchecked(&i, &j)
-                            && rect_conflict(state[i].cell, state[j].cell, self.mapf.unit_size)
-                        {
-                            let cii = ConflictInfo {
-                                uid: state[i].uid,
-                                cell: state[i].cell,
-                                stay: state[i].stay,
-                            };
-                            let cij = ConflictInfo {
-                                uid: state[j].uid,
-                                cell: state[j].cell,
-                                stay: state[j].stay,
-                            };
-                            self.conflicts.push(Conflict(cii, cij));
-                        }
+            for (i, i_moved) in moved.iter().enumerate() {
+                for (j, j_moved) in moved.iter().enumerate().skip(i + 1) {
+                    let includes_moved = *i_moved || *j_moved;
+                    let includes_modified = modified.contains(&i) || modified.contains(&j);
+                    if includes_moved && includes_modified {
+                        self.add_if_conflict(&state[i], &state[j])
                     }
                 }
             }
         }
     }
-
-    //fn find_conflicts(&mut self, modified: &HashSet<usize>) {
-    //    self.clear_conflicts(modified);
-    //    let checked = |x: usize, y: usize| y <= x && modified.contains(&y);
-    //    for idx1 in modified {
-    //        let path1 = &self.solution[*idx1];
-    //        for (idx2, path2) in self.solution.iter().enumerate() {
-    //            if !checked(*idx1, idx2) {
-    //                self.conflicts
-    //                    .extend(check_against(path1, path2, self.mapf.unit_size));
-    //            }
-    //        }
-    //    }
-    //}
 
     fn find_conflicts(&mut self, modified: &HashSet<usize>) {
         self.clear_conflicts(modified);
@@ -246,19 +213,28 @@ impl CBS<'_> {
     }
 }
 
-pub fn apply_constraints(mut cbs: CBS, mut constraints: Vec<Constraint>) -> Option<CBS> {
+fn apply_constraints(mut cbs: CBS, mut constraints: Vec<Constraint>) -> Option<CBS> {
     let mut modified = HashSet::with_capacity(cbs.solution.len());
     for constraint in &constraints {
         modified.insert(cbs.unit_to_idx(constraint.uid));
     }
     cbs.constraints.append(&mut constraints);
+    //println!(
+    //    "Attempting to find solutions with constraints {:?}",
+    //    cbs.constraints
+    //);
     cbs.find_solution(&modified);
     for idx in &modified {
         if cbs.solution[*idx].is_empty() {
             cbs.cost = usize::MAX;
+            //println!(
+            //    "Failed to find path for {idx} with constraints {:?}",
+            //    cbs.constraints
+            //);
             return None;
         }
     }
+    //println!("Found!");
     cbs.find_cost(&modified);
     cbs.find_conflicts(&modified);
     Some(cbs)
