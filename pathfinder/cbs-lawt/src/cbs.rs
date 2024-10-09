@@ -1,7 +1,10 @@
 use crate::mapf::MAPF;
 use crate::prelude::*;
 use core::panic;
-use std::collections::{BinaryHeap, HashSet};
+use std::{
+    collections::{BinaryHeap, HashSet},
+    ops::Sub,
+};
 
 fn rect_conflict(cell1: Pair, cell2: Pair, unit_size: Pair) -> bool {
     let ((x1, y1), (x2, y2), (dx, dy)) = (cell1, cell2, unit_size);
@@ -150,7 +153,8 @@ impl CBS<'_> {
                 cell: state_j.cell,
                 stay: state_j.stay,
             };
-            //println!("{:?}", Conflict(cii, cij));
+            //println!("{:?}", cii);
+            //println!("{:?}", cij);
             self.conflicts.push(Conflict(cii, cij));
         }
     }
@@ -166,6 +170,9 @@ impl CBS<'_> {
                 stay: path[0].stay,
             });
         }
+        //println!();
+        //println!("##### Adding conflicts #####");
+        //println!();
         for time in 1..=end_time {
             // Update states
             let mut moved = vec![false; state.len()];
@@ -176,7 +183,7 @@ impl CBS<'_> {
                     //    state[i].cell,
                     //    state[i].stay,
                     //    path[idx + 1].cell,
-                    //    (path[idx].time + 1, path[idx + 1].time),
+                    //    path[idx + 1].stay,
                     //);
                     state[i].cell = path[idx + 1].cell;
                     state[i].stay = path[idx + 1].stay;
@@ -210,6 +217,7 @@ impl CBS<'_> {
 }
 
 fn apply_constraints(mut cbs: CBS, mut constraints: Vec<Constraint>) -> Option<CBS> {
+    //println!("applying constraints");
     let mut modified = HashSet::with_capacity(cbs.solution.len());
     for constraint in &constraints {
         modified.insert(cbs.unit_to_idx(constraint.uid));
@@ -230,29 +238,41 @@ fn apply_constraints(mut cbs: CBS, mut constraints: Vec<Constraint>) -> Option<C
             return None;
         }
     }
-    //println!("Found!");
+    //println!("Found! Finding cost");
     cbs.find_cost(&modified);
+    //println!("Finding conflicts");
     cbs.find_conflicts(&modified);
     Some(cbs)
+}
+
+// A unit in this rect collides with a unit at cell
+fn collisions(cell: Pair, unit_size: Pair) -> Rect {
+    let origin = (
+        (cell.0 + 1).saturating_sub(unit_size.0),
+        (cell.1 + 1).saturating_sub(unit_size.1),
+    );
+    let extent = (cell.0 + unit_size.0.sub(1), cell.1 + unit_size.1.sub(1));
+    Rect { origin, extent }
 }
 
 // Forbids the first conflict
 fn naive_generator(cbs: &CBS) -> Vec<Vec<Constraint>> {
     let conflict = cbs.conflicts[0];
-    let constraint1 = Constraint {
+    let constraint0 = Constraint {
         uid: conflict.0.uid,
-        cell: conflict.0.cell,
+        rect: collisions(conflict.1.cell, cbs.mapf.unit_size),
         stay: conflict.1.stay,
     };
-    let constraint2 = Constraint {
+    let constraint1 = Constraint {
         uid: conflict.1.uid,
-        cell: conflict.1.cell,
+        rect: collisions(conflict.0.cell, cbs.mapf.unit_size),
         stay: conflict.0.stay,
     };
-    vec![vec![constraint1], vec![constraint2]]
+    vec![vec![constraint0], vec![constraint1]]
 }
 
 fn children(cbs: CBS) -> Vec<CBS> {
+    //println!("finding children");
     let new = cbs.generate_constraints();
     let mut children = Vec::with_capacity(new.len());
     for constraints in new {
@@ -269,6 +289,7 @@ pub fn solve_mapf(mapf: &MAPF) -> Vec<Vec<ScoredCell>> {
     let mut heap = BinaryHeap::new();
     heap.push(root);
     loop {
+        //println!("looping");
         let best = heap.pop().unwrap();
         if best.conflicts.is_empty() {
             return best.solution;

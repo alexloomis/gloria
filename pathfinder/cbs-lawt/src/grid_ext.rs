@@ -78,40 +78,39 @@ impl GridExt {
         total
     }
 
-    // Costs to move *to* cell, not from
-    pub fn djikstra(&self, cell: Pair) -> Grid<usize> {
-        let mut reached = HashMap::with_capacity(self.extent().0 * self.extent().1);
-        reached.insert(cell, 0);
-        let mut checked = Grid::init(self.extent().0, self.extent().1, usize::MAX);
-        while !reached.is_empty() {
+    pub fn djikstra(&self, to: Pair) -> Grid<usize> {
+        let mut open = HashMap::with_capacity(self.extent().0 * self.extent().1);
+        open.insert(to, 0);
+        let mut closed = Grid::init(self.extent().0, self.extent().1, usize::MAX);
+        while !open.is_empty() {
             let min_cell;
-            let current_cost = match reached.min_key() {
+            let current_cost = match open.min_key() {
                 Some((key, value)) => {
                     min_cell = key;
                     value
                 }
                 None => break,
             };
-            checked[min_cell] = current_cost;
-            reached.remove(&min_cell);
+            closed[min_cell] = current_cost;
+            open.remove(&min_cell);
             for neighbor in self.neighbors(min_cell) {
                 // If the neighbor has not been fully resolved yet
-                if checked[neighbor] == usize::MAX {
+                if closed[neighbor] == usize::MAX {
                     // Cost of self, because the cost is to move *to* self
                     let new_cost = current_cost + self.cost(min_cell);
-                    match reached.get(&neighbor) {
+                    match open.get(&neighbor) {
                         Some(value) => {
                             if new_cost < *value {
-                                reached.insert(neighbor, new_cost);
+                                open.insert(neighbor, new_cost);
                             }
                         }
                         None => {
-                            reached.insert(neighbor, new_cost);
+                            open.insert(neighbor, new_cost);
                         }
                     }
                 }
             }
         }
-        checked
+        closed
     }
 }

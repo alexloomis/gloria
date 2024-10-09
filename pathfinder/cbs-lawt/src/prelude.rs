@@ -1,3 +1,4 @@
+use std::cell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -9,7 +10,7 @@ pub struct CellInfo {
     pub blocked: bool,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub struct Rect {
     pub origin: Pair,
     pub extent: Pair,
@@ -24,6 +25,13 @@ impl Rect {
             }
         }
         out
+    }
+
+    pub fn contains(&self, cell: Pair) -> bool {
+        //(self.origin.0..=self.origin.0 + self.extent.0).contains(&cell.0)
+        //    && (self.origin.1..=self.origin.1 + self.extent.1).contains(&cell.1)
+        let (x, dx, y, dy) = (self.origin.0, self.extent.0, self.origin.1, self.extent.1);
+        x <= cell.0 && cell.0 <= x + dx && y <= cell.1 && cell.1 <= y + dy
     }
 }
 
@@ -45,14 +53,41 @@ impl<T: Copy> HashMapExt<T> for HashMap<T, usize> {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct ScoredCell {
     // Cost including heuristic, what time do we think we will arrive?
     pub cost: usize,
-    // Time of earliest departure, cost without heuristic
     pub stay: Pair,
     pub cell: Pair,
     pub prev: Option<Rc<ScoredCell>>,
+}
+
+impl PartialEq for ScoredCell {
+    fn eq(&self, other: &Self) -> bool {
+        self.cell == other.cell && self.stay == other.stay
+    }
+}
+
+impl Eq for ScoredCell {}
+
+// Lowest cost has highest priority, then earliest departure, then earliest arrival, then we don't
+// really care, so we just do by cell then by prev.
+impl Ord for ScoredCell {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other
+            .cost
+            .cmp(&self.cost)
+            .then_with(|| other.stay.1.cmp(&self.stay.1))
+            .then_with(|| other.stay.0.cmp(&self.stay.0))
+            .then_with(|| other.cell.cmp(&self.cell))
+            .then_with(|| other.prev.cmp(&self.prev))
+    }
+}
+
+impl PartialOrd for ScoredCell {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 pub fn unfold_path(path: Vec<ScoredCell>) -> Vec<Pair> {
@@ -69,12 +104,12 @@ pub fn unfold_path(path: Vec<ScoredCell>) -> Vec<Pair> {
     out
 }
 
-// Currently means the unit's origin is blocked from the tile, not the unit's entire body
+// Constraint means that the unit's origin is blocked from the tiles, not the unit's entire body
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Constraint {
     // Unit ID is its starting coord
     pub uid: Pair,
-    pub cell: Pair,
+    pub rect: Rect,
     pub stay: Pair,
 }
 

@@ -1,7 +1,6 @@
 use crate::grid_ext::GridExt;
 use crate::prelude::*;
 use grid::Grid;
-use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::ops::Sub;
 use std::rc::Rc;
@@ -17,9 +16,9 @@ fn filter_constraints(start: Pair, constraints: &[Constraint]) -> Vec<Constraint
 }
 
 // We assume the constraints have already been filtered
-fn check_constraints(scored_cell: &ScoredCell, constraints: &[Constraint]) -> bool {
+fn satisfies_constraints(scored_cell: &ScoredCell, constraints: &[Constraint]) -> bool {
     for constraint in constraints {
-        let relevant_cell = scored_cell.cell == constraint.cell;
+        let relevant_cell = constraint.rect.contains(scored_cell.cell);
         let relevant_time =
         // We havent left before the constraint begins
         constraint.stay.0 <= scored_cell.stay.1
@@ -33,22 +32,24 @@ fn check_constraints(scored_cell: &ScoredCell, constraints: &[Constraint]) -> bo
     true
 }
 
-fn check_against(candidate: &ScoredCell, heap: &BinaryHeap<Reverse<ScoredCell>>) -> bool {
-    for cell in heap {
-        if cell.0.cost >= candidate.cost {
+fn open_allows_candidate(candidate: &ScoredCell, open: &BinaryHeap<ScoredCell>) -> bool {
+    for cell in open {
+        // If candidate is cheaper than all remaining cells, we want to check this cell
+        if candidate.cost < cell.cost {
             break;
-        } else if cell.0.cell == candidate.cell && cell.0.stay == candidate.stay {
+        } else if cell.cell == candidate.cell && cell.stay == candidate.stay {
             return false;
         }
     }
     true
 }
 
-fn check_against_rc(candidate: &ScoredCell, heap: &BinaryHeap<Reverse<Rc<ScoredCell>>>) -> bool {
-    for cell in heap {
-        if cell.0.cost >= candidate.cost {
+fn not_yet_closed(candidate: &ScoredCell, closed: &BinaryHeap<Rc<ScoredCell>>) -> bool {
+    for cell in closed {
+        // If candidate is cheaper than all remaining cells, it has not been closed yet
+        if candidate.cost < cell.cost {
             break;
-        } else if cell.0.cell == candidate.cell && cell.0.stay == candidate.stay {
+        } else if cell.cell == candidate.cell && cell.stay == candidate.stay {
             return false;
         }
     }
@@ -57,7 +58,7 @@ fn check_against_rc(candidate: &ScoredCell, heap: &BinaryHeap<Reverse<Rc<ScoredC
 
 fn may_stop(candidate: &ScoredCell, constraints: &[Constraint]) -> bool {
     for constraint in constraints {
-        if candidate.cell == constraint.cell && candidate.stay.0 <= constraint.stay.1 {
+        if constraint.rect.contains(candidate.cell) && candidate.stay.0 <= constraint.stay.1 {
             return false;
         }
     }
@@ -168,9 +169,9 @@ impl MAPF {
             cost: scored_cell.cost + 1,
             stay: (scored_cell.stay.0, scored_cell.stay.1 + 1),
             cell: scored_cell.cell,
-            prev: Some(Rc::clone(&scored_cell)),
+            prev: scored_cell.prev.clone(),
         };
-        if check_constraints(&wait, constraints) {
+        if satisfies_constraints(&wait, constraints) {
             succ.push(wait);
         }
         for neighbor in neighbors {
@@ -181,7 +182,7 @@ impl MAPF {
                 cell: neighbor,
                 prev: Some(Rc::clone(&scored_cell)),
             };
-            if check_constraints(&candidate, constraints) {
+            if satisfies_constraints(&candidate, constraints) {
                 succ.push(candidate);
             }
         }
@@ -193,28 +194,28 @@ impl MAPF {
         let (x_extent, y_extent) = self.grid.extent();
         let mut closed = BinaryHeap::with_capacity(x_extent * y_extent);
         let mut open = BinaryHeap::with_capacity(x_extent * y_extent);
-        open.push(Reverse(ScoredCell {
+        open.push(ScoredCell {
             cost: 0,
             stay: (0, 0),
             cell: start,
             prev: None,
-        }));
+        });
         loop {
             let current = match open.pop() {
                 None => {
                     return Vec::new();
                 }
-                Some(Reverse(sc)) => Rc::new(sc),
+                Some(sc) => Rc::new(sc),
             };
-            closed.push(Reverse(Rc::clone(&current)));
+            closed.push(Rc::clone(&current));
             for successor in self.successors(current, &my_constraints) {
-                if check_against(&successor, &open) && check_against_rc(&successor, &closed) {
+                if open_allows_candidate(&successor, &open) && not_yet_closed(&successor, &closed) {
                     if self.destinations.contains(&successor.cell)
                         && may_stop(&successor, &my_constraints)
                     {
                         return reconstruct_path(successor);
                     }
-                    open.push(Reverse(successor));
+                    open.push(successor);
                 }
             }
         }

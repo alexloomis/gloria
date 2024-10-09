@@ -7,3 +7,7 @@ description = "A utility to help find reasonable pedal changes."
 
 [dependencies]
 grid = "0.15.0"
+# coz = "0.1.3"
+
+[profile.release]
+debug = 1
