@@ -4,6 +4,7 @@ use grid::Grid;
 use std::collections::BinaryHeap;
 use std::ops::Sub;
 use std::rc::Rc;
+use std::usize;
 
 fn filter_constraints(start: Pair, constraints: &[Constraint]) -> Vec<Constraint> {
     let mut out = Vec::with_capacity(constraints.len());
@@ -158,11 +159,7 @@ impl MAPF {
         out
     }
 
-    fn successors(
-        &self,
-        scored_cell: Rc<ScoredCell>,
-        constraints: &[Constraint],
-    ) -> Vec<ScoredCell> {
+    fn successors(&self, scored_cell: ScoredCell, constraints: &[Constraint]) -> Vec<ScoredCell> {
         let neighbors = self.grid.neighbors(scored_cell.cell);
         let mut succ = Vec::with_capacity(neighbors.len() + 1);
         let wait = ScoredCell {
@@ -174,13 +171,14 @@ impl MAPF {
         if satisfies_constraints(&wait, constraints) {
             succ.push(wait);
         }
+        let sc = Rc::new(scored_cell);
         for neighbor in neighbors {
-            let time = scored_cell.stay.1 + self.grid.cost(neighbor);
+            let time = sc.stay.1 + self.grid.cost(neighbor);
             let candidate = ScoredCell {
                 cost: time + self.heuristic[neighbor],
-                stay: (scored_cell.stay.1 + 1, time),
+                stay: (sc.stay.1 + 1, time),
                 cell: neighbor,
-                prev: Some(Rc::clone(&scored_cell)),
+                prev: Some(Rc::clone(&sc)),
             };
             if satisfies_constraints(&candidate, constraints) {
                 succ.push(candidate);
@@ -192,7 +190,6 @@ impl MAPF {
     pub fn astar(&self, start: Pair, constraints: &[Constraint]) -> Vec<ScoredCell> {
         let my_constraints = filter_constraints(start, constraints);
         let (x_extent, y_extent) = self.grid.extent();
-        let mut closed = BinaryHeap::with_capacity(x_extent * y_extent);
         let mut open = BinaryHeap::with_capacity(x_extent * y_extent);
         open.push(ScoredCell {
             cost: 0,
@@ -200,16 +197,16 @@ impl MAPF {
             cell: start,
             prev: None,
         });
+
         loop {
             let current = match open.pop() {
                 None => {
                     return Vec::new();
                 }
-                Some(sc) => Rc::new(sc),
+                Some(sc) => sc,
             };
-            closed.push(Rc::clone(&current));
             for successor in self.successors(current, &my_constraints) {
-                if open_allows_candidate(&successor, &open) && not_yet_closed(&successor, &closed) {
+                if open_allows_candidate(&successor, &open) {
                     if self.destinations.contains(&successor.cell)
                         && may_stop(&successor, &my_constraints)
                     {

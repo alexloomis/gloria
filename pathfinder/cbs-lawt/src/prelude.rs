@@ -1,8 +1,11 @@
-use std::cell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::{cell, usize};
 
 pub type Pair = (usize, usize);
+
+pub const MAX_BOARD_SIZE: Pair = (100, 100);
+pub const TIME_LIMIT: usize = 100;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct CellInfo {
@@ -87,6 +90,14 @@ impl Ord for ScoredCell {
 impl PartialOrd for ScoredCell {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl ScoredCell {
+    pub fn id(&self) -> usize {
+        self.cell.0
+            + self.cell.1 * MAX_BOARD_SIZE.0
+            + self.stay.1 * MAX_BOARD_SIZE.0 * MAX_BOARD_SIZE.1
     }
 }
 
