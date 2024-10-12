@@ -6,21 +6,20 @@ use std::ops::Sub;
 #[derive(PartialEq, Eq)]
 pub struct GridExt {
     grid: Grid<CellInfo>,
-    unit_size: Pair,
 }
 
 // Visible: new, cost, neighbors, djikstra
 
 impl GridExt {
-    pub fn new(grid: Grid<CellInfo>, unit_size: Pair) -> GridExt {
-        GridExt { grid, unit_size }
+    pub fn new(grid: Grid<CellInfo>) -> GridExt {
+        GridExt { grid }
     }
 
     // Effective number of (columns, rows)
     pub fn extent(&self) -> Pair {
         (
-            self.grid.rows().sub(self.unit_size.0) + 1,
-            self.grid.cols().sub(self.unit_size.1) + 1,
+            self.grid.rows().sub(UNIT_SIZE.0) + 1,
+            self.grid.cols().sub(UNIT_SIZE.1) + 1,
         )
     }
 
@@ -36,7 +35,7 @@ impl GridExt {
     fn rect(&self, cell: Pair) -> Rect {
         Rect {
             origin: cell,
-            extent: self.unit_size,
+            extent: UNIT_SIZE,
         }
     }
 

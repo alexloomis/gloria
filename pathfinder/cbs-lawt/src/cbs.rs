@@ -1,26 +1,34 @@
 use crate::mapf::MAPF;
 use crate::prelude::*;
 use core::panic;
-use std::{
-    collections::{BinaryHeap, HashSet},
-    ops::Sub,
-};
+use std::{collections::HashSet, ops::Sub};
 
-fn rect_conflict(cell1: Pair, cell2: Pair, unit_size: Pair) -> bool {
-    let ((x1, y1), (x2, y2), (dx, dy)) = (cell1, cell2, unit_size);
+fn rect_conflict(cell1: Pair, cell2: Pair) -> bool {
+    let ((x1, y1), (x2, y2), (dx, dy)) = (cell1, cell2, UNIT_SIZE);
     x1 < x2 + dx && x2 < x1 + dx && y1 < y2 + dy && y2 < y1 + dy
 }
 
-struct ConfState {
+// A unit in this rect collides with a unit at cell
+fn collisions(cell: Pair) -> Rect {
+    let origin = (
+        (cell.0 + 1).saturating_sub(UNIT_SIZE.0),
+        (cell.1 + 1).saturating_sub(UNIT_SIZE.1),
+    );
+    let extent = ((2 * UNIT_SIZE.0).sub(1), (2 * UNIT_SIZE.1).sub(1));
+    Rect { origin, extent }
+}
+
+struct UnitState {
     uid: Pair,
     idx: usize,
     cell: Pair,
     stay: Pair,
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
-pub enum ConstGen {
-    Naive,
+pub struct Exploration {
+    conflict: Conflict,
+    constraints: (Constraint, Constraint),
+    solutions: (Vec<ScoredCell>, Vec<ScoredCell>),
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -30,25 +38,6 @@ pub struct CBS<'a> {
     pub solution: Vec<Vec<ScoredCell>>,
     pub cost: usize,
     pub conflicts: Vec<Conflict>,
-    c_gen: ConstGen,
-}
-
-// Recall that higher ord means higher priority,
-// so we want cost.x < cost.y => x > y.
-impl Ord for CBS<'_> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.cost
-            .cmp(&other.cost)
-            .then_with(|| self.conflicts.len().cmp(&other.conflicts.len()))
-            .then_with(|| self.constraints.cmp(&other.constraints))
-            .reverse()
-    }
-}
-
-impl PartialOrd for CBS<'_> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
 }
 
 impl CBS<'_> {
@@ -59,7 +48,6 @@ impl CBS<'_> {
             solution: Vec::with_capacity(mapf.origins.len()),
             cost: 0,
             conflicts: Vec::new(),
-            c_gen: ConstGen::Naive,
         };
         for origin in &cbs.mapf.origins {
             cbs.solution.push(vec![ScoredCell {
@@ -72,7 +60,7 @@ impl CBS<'_> {
         cbs
     }
 
-    pub fn init(mapf: &MAPF, c_gen: ConstGen) -> CBS {
+    pub fn init(mapf: &MAPF) -> CBS {
         let mut cbs = CBS::new(mapf);
         let num_units = cbs.solution.len();
         let mut modified: HashSet<usize> = HashSet::with_capacity(num_units);
@@ -82,7 +70,6 @@ impl CBS<'_> {
         cbs.find_solution(&modified);
         cbs.find_cost(&modified);
         cbs.find_conflicts(&modified);
-        cbs.c_gen = c_gen;
         cbs
     }
 
@@ -101,6 +88,10 @@ impl CBS<'_> {
         for idx in modified {
             self.solution[*idx] = self.mapf.astar(self.idx_to_unit(*idx), &self.constraints);
         }
+        self.extend_paths();
+    }
+
+    fn extend_paths(&mut self) {
         let mut end_time = 0;
         for path in &self.solution {
             if path.is_empty() {
@@ -141,8 +132,8 @@ impl CBS<'_> {
         self.conflicts = retained;
     }
 
-    fn add_if_conflict(&mut self, state_i: &ConfState, state_j: &ConfState) {
-        if rect_conflict(state_i.cell, state_j.cell, self.mapf.unit_size) {
+    fn add_if_conflict(&mut self, state_i: &UnitState, state_j: &UnitState) {
+        if rect_conflict(state_i.cell, state_j.cell) {
             let cii = ConflictInfo {
                 uid: state_i.uid,
                 cell: state_i.cell,
@@ -153,8 +144,6 @@ impl CBS<'_> {
                 cell: state_j.cell,
                 stay: state_j.stay,
             };
-            //println!("{:?}", cii);
-            //println!("{:?}", cij);
             self.conflicts.push(Conflict(cii, cij));
         }
     }
@@ -163,28 +152,18 @@ impl CBS<'_> {
         let mut state = Vec::with_capacity(self.solution.len());
         let end_time = self.cost;
         for path in &self.solution {
-            state.push(ConfState {
+            state.push(UnitState {
                 uid: path[0].cell,
                 idx: 0,
                 cell: path[0].cell,
                 stay: path[0].stay,
             });
         }
-        //println!();
-        //println!("##### Adding conflicts #####");
-        //println!();
         for time in 1..=end_time {
-            // Update states
             let mut moved = vec![false; state.len()];
             for (i, path) in self.solution.iter().enumerate() {
                 let idx = state[i].idx;
                 if time > path[idx].stay.1 && idx < path.len() - 1 {
-                    //println!("{i} moved from {:?} with a stay of {:?} to {:?} with a stay of {:?} at time {time}, generating the conflicts:",
-                    //    state[i].cell,
-                    //    state[i].stay,
-                    //    path[idx + 1].cell,
-                    //    path[idx + 1].stay,
-                    //);
                     state[i].cell = path[idx + 1].cell;
                     state[i].stay = path[idx + 1].stay;
                     state[i].idx += 1;
@@ -209,91 +188,41 @@ impl CBS<'_> {
         self.add_conflicts(modified);
     }
 
-    pub fn generate_constraints(&self) -> Vec<Vec<Constraint>> {
-        match self.c_gen {
-            ConstGen::Naive => naive_generator(self),
+    fn explore_conflict(&self, conflict: Conflict) -> Exploration {
+        let constraints = generate_constraints(conflict);
+        let mut constraints_0 = self.constraints.clone();
+        constraints_0.push(constraints.0);
+        let path_0 = self.mapf.astar(constraints.0.uid, &constraints_0);
+        let mut constraints_1 = self.constraints.clone();
+        constraints_1.push(constraints.1);
+        let path_1 = self.mapf.astar(constraints.1.uid, &constraints_1);
+        Exploration {
+            conflict,
+            constraints,
+            solutions: (path_0, path_1),
         }
     }
-}
 
-fn apply_constraints(mut cbs: CBS, mut constraints: Vec<Constraint>) -> Option<CBS> {
-    //println!("applying constraints");
-    let mut modified = HashSet::with_capacity(cbs.solution.len());
-    for constraint in &constraints {
-        modified.insert(cbs.unit_to_idx(constraint.uid));
-    }
-    cbs.constraints.append(&mut constraints);
-    //println!(
-    //    "Attempting to find solutions with constraints {:?}",
-    //    cbs.constraints
-    //);
-    cbs.find_solution(&modified);
-    for idx in &modified {
-        if cbs.solution[*idx].is_empty() {
-            cbs.cost = usize::MAX;
-            //println!(
-            //    "Failed to find path for {idx} with constraints {:?}",
-            //    cbs.constraints
-            //);
-            return None;
+    fn explore(&self) -> Vec<Exploration> {
+        let mut explorations = Vec::with_capacity(self.conflicts.len());
+        for conflict in &self.conflicts {
+            let exploration = self.explore_conflict(*conflict);
+            explorations.push(exploration);
         }
+        explorations
     }
-    //println!("Found! Finding cost");
-    cbs.find_cost(&modified);
-    //println!("Finding conflicts");
-    cbs.find_conflicts(&modified);
-    Some(cbs)
 }
 
-// A unit in this rect collides with a unit at cell
-fn collisions(cell: Pair, unit_size: Pair) -> Rect {
-    let origin = (
-        (cell.0 + 1).saturating_sub(unit_size.0),
-        (cell.1 + 1).saturating_sub(unit_size.1),
-    );
-    let extent = (cell.0 + unit_size.0.sub(1), cell.1 + unit_size.1.sub(1));
-    Rect { origin, extent }
-}
-
-// Forbids the first conflict
-fn naive_generator(cbs: &CBS) -> Vec<Vec<Constraint>> {
-    let conflict = cbs.conflicts[0];
-    let constraint0 = Constraint {
+fn generate_constraints(conflict: Conflict) -> (Constraint, Constraint) {
+    let constraint_0 = Constraint {
         uid: conflict.0.uid,
-        rect: collisions(conflict.1.cell, cbs.mapf.unit_size),
+        rect: collisions(conflict.1.cell),
         stay: conflict.1.stay,
     };
-    let constraint1 = Constraint {
+    let constraint_1 = Constraint {
         uid: conflict.1.uid,
-        rect: collisions(conflict.0.cell, cbs.mapf.unit_size),
+        rect: collisions(conflict.0.cell),
         stay: conflict.0.stay,
     };
-    vec![vec![constraint0], vec![constraint1]]
-}
-
-fn children(cbs: CBS) -> Vec<CBS> {
-    //println!("finding children");
-    let new = cbs.generate_constraints();
-    let mut children = Vec::with_capacity(new.len());
-    for constraints in new {
-        match apply_constraints(cbs.clone(), constraints) {
-            None => {}
-            Some(child) => children.push(child),
-        }
-    }
-    children
-}
-
-pub fn solve_mapf(mapf: &MAPF) -> Vec<Vec<ScoredCell>> {
-    let root = CBS::init(mapf, ConstGen::Naive);
-    let mut heap = BinaryHeap::new();
-    heap.push(root);
-    loop {
-        //println!("looping");
-        let best = heap.pop().unwrap();
-        if best.conflicts.is_empty() {
-            return best.solution;
-        }
-        heap.extend(children(best));
-    }
+    (constraint_0, constraint_1)
 }

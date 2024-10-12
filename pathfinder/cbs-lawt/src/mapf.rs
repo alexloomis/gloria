@@ -83,7 +83,6 @@ fn reconstruct_path(last: ScoredCell) -> Vec<ScoredCell> {
 #[derive(PartialEq, Eq)]
 pub struct MAPF {
     pub grid: GridExt,
-    pub unit_size: Pair,
     pub origins: Vec<Pair>,
     pub destinations: Vec<Pair>,
     pub heuristic: Grid<usize>,
@@ -134,20 +133,14 @@ impl MAPF {
         }
     }
 
-    pub fn init(
-        origins: Vec<Pair>,
-        destinations: Vec<Pair>,
-        unit_size: Pair,
-        grid: Grid<CellInfo>,
-    ) -> MAPF {
+    pub fn init(origins: Vec<Pair>, destinations: Vec<Pair>, grid: Grid<CellInfo>) -> MAPF {
         let mut out = MAPF {
             heuristic: Grid::init(
-                grid.rows().sub(unit_size.1) + 1,
-                grid.cols().sub(unit_size.0) + 1,
+                grid.rows().sub(UNIT_SIZE.1) + 1,
+                grid.cols().sub(UNIT_SIZE.0) + 1,
                 usize::MAX,
             ),
-            grid: GridExt::new(grid, unit_size),
-            unit_size,
+            grid: GridExt::new(grid),
             origins: origins.clone(),
             destinations: destinations.clone(),
         };
