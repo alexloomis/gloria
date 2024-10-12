@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ops::Sub;
 use std::rc::Rc;
 
 pub type Pair = (usize, usize);
@@ -34,6 +35,21 @@ impl Rect {
         let (x, dx, y, dy) = (self.origin.0, self.extent.0, self.origin.1, self.extent.1);
         x <= cell.0 && cell.0 <= x + dx && y <= cell.1 && cell.1 <= y + dy
     }
+}
+
+pub fn rect_conflict(cell1: Pair, cell2: Pair) -> bool {
+    let ((x1, y1), (x2, y2), (dx, dy)) = (cell1, cell2, UNIT_SIZE);
+    x1 < x2 + dx && x2 < x1 + dx && y1 < y2 + dy && y2 < y1 + dy
+}
+
+// A unit in this rect collides with a unit at cell
+fn collisions(cell: Pair) -> Rect {
+    let origin = (
+        (cell.0 + 1).saturating_sub(UNIT_SIZE.0),
+        (cell.1 + 1).saturating_sub(UNIT_SIZE.1),
+    );
+    let extent = ((2 * UNIT_SIZE.0).sub(1), (2 * UNIT_SIZE.1).sub(1));
+    Rect { origin, extent }
 }
 
 pub trait HashMapExt<T> {
@@ -91,7 +107,9 @@ impl PartialOrd for ScoredCell {
     }
 }
 
-pub fn unfold_path(path: Vec<ScoredCell>) -> Vec<Pair> {
+pub type Path = Vec<ScoredCell>;
+
+pub fn unfold_path(path: Path) -> Vec<Pair> {
     if path.is_empty() {
         return Vec::new();
     }
@@ -105,15 +123,6 @@ pub fn unfold_path(path: Vec<ScoredCell>) -> Vec<Pair> {
     out
 }
 
-// Constraint means that the unit's origin is blocked from the tiles, not the unit's entire body
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Constraint {
-    // Unit ID is its starting coord
-    pub uid: Pair,
-    pub rect: Rect,
-    pub stay: Pair,
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ConflictInfo {
     pub uid: Pair,
@@ -123,3 +132,32 @@ pub struct ConflictInfo {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Conflict(pub ConflictInfo, pub ConflictInfo);
+
+impl Conflict {
+    pub fn uids(&self) -> (Pair, Pair) {
+        (self.0.uid, self.1.uid)
+    }
+}
+
+// Constraint means that the unit's origin is blocked from the tiles, not the unit's entire body
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Constraint {
+    // Unit ID is its starting coord
+    pub uid: Pair,
+    pub rect: Rect,
+    pub stay: Pair,
+}
+
+pub fn generate_constraints(conflict: Conflict) -> (Constraint, Constraint) {
+    let constraint_0 = Constraint {
+        uid: conflict.0.uid,
+        rect: collisions(conflict.1.cell),
+        stay: conflict.1.stay,
+    };
+    let constraint_1 = Constraint {
+        uid: conflict.1.uid,
+        rect: collisions(conflict.0.cell),
+        stay: conflict.0.stay,
+    };
+    (constraint_0, constraint_1)
+}

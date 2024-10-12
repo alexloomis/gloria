@@ -1,22 +1,7 @@
 use crate::mapf::MAPF;
 use crate::prelude::*;
-use core::panic;
-use std::{collections::HashSet, ops::Sub};
-
-fn rect_conflict(cell1: Pair, cell2: Pair) -> bool {
-    let ((x1, y1), (x2, y2), (dx, dy)) = (cell1, cell2, UNIT_SIZE);
-    x1 < x2 + dx && x2 < x1 + dx && y1 < y2 + dy && y2 < y1 + dy
-}
-
-// A unit in this rect collides with a unit at cell
-fn collisions(cell: Pair) -> Rect {
-    let origin = (
-        (cell.0 + 1).saturating_sub(UNIT_SIZE.0),
-        (cell.1 + 1).saturating_sub(UNIT_SIZE.1),
-    );
-    let extent = ((2 * UNIT_SIZE.0).sub(1), (2 * UNIT_SIZE.1).sub(1));
-    Rect { origin, extent }
-}
+use std::cmp::{max, min};
+use std::collections::HashSet;
 
 struct UnitState {
     uid: Pair,
@@ -25,39 +10,26 @@ struct UnitState {
     stay: Pair,
 }
 
-pub struct Exploration {
-    conflict: Conflict,
-    constraints: (Constraint, Constraint),
-    solutions: (Vec<ScoredCell>, Vec<ScoredCell>),
-}
-
 #[derive(Clone, PartialEq, Eq)]
 pub struct CBS<'a> {
     pub mapf: &'a MAPF,
     pub constraints: Vec<Constraint>,
-    pub solution: Vec<Vec<ScoredCell>>,
+    pub solution: Vec<Path>,
     pub cost: usize,
     pub conflicts: Vec<Conflict>,
 }
 
 impl CBS<'_> {
+    /// init() functions
+
     fn new(mapf: &MAPF) -> CBS {
-        let mut cbs = CBS {
+        CBS {
             mapf,
             constraints: Vec::new(),
             solution: Vec::with_capacity(mapf.origins.len()),
             cost: 0,
             conflicts: Vec::new(),
-        };
-        for origin in &cbs.mapf.origins {
-            cbs.solution.push(vec![ScoredCell {
-                cell: *origin,
-                cost: 0,
-                stay: (0, 0),
-                prev: None,
-            }]);
         }
-        cbs
     }
 
     pub fn init(mapf: &MAPF) -> CBS {
@@ -67,28 +39,21 @@ impl CBS<'_> {
         for i in 0..num_units {
             modified.insert(i);
         }
-        cbs.find_solution(&modified);
-        cbs.find_cost(&modified);
-        cbs.find_conflicts(&modified);
+        cbs.find_paths();
+        cbs.extend_paths();
+        cbs.find_cost();
+        cbs.find_conflicts();
         cbs
     }
 
-    fn unit_to_idx(&self, cell: Pair) -> usize {
-        match self.solution.iter().position(|c| cell == c[0].cell) {
-            Some(idx) => idx,
-            None => panic!("No solution starting at {:?}!", cell),
+    fn find_paths(&mut self) {
+        for cell in &self.mapf.origins {
+            let path = self
+                .mapf
+                .astar(*cell, &self.constraints)
+                .expect("Unable to find preliminary path!");
+            self.solution.push(path);
         }
-    }
-
-    fn idx_to_unit(&self, idx: usize) -> Pair {
-        self.solution[idx][0].cell
-    }
-
-    fn find_solution(&mut self, modified: &HashSet<usize>) {
-        for idx in modified {
-            self.solution[*idx] = self.mapf.astar(self.idx_to_unit(*idx), &self.constraints);
-        }
-        self.extend_paths();
     }
 
     fn extend_paths(&mut self) {
@@ -107,29 +72,9 @@ impl CBS<'_> {
         }
     }
 
-    fn find_cost(&mut self, modified: &HashSet<usize>) {
-        for idx in modified {
-            let path = &self.solution[*idx];
-            let candidate = path[path.len() - 1].stay.1;
-            if candidate > self.cost {
-                self.cost = candidate
-            }
-        }
-    }
-
-    fn conflict_involves(&self, conflict: &Conflict, modified: &HashSet<usize>) -> bool {
-        modified.contains(&self.unit_to_idx(conflict.0.uid))
-            || modified.contains(&self.unit_to_idx(conflict.1.uid))
-    }
-
-    fn clear_conflicts(&mut self, modified: &HashSet<usize>) {
-        let mut retained = Vec::with_capacity(self.conflicts.len());
-        for conflict in &self.conflicts {
-            if !self.conflict_involves(conflict, modified) {
-                retained.push(*conflict);
-            }
-        }
-        self.conflicts = retained;
+    fn find_cost(&mut self) {
+        let path = &self.solution[0];
+        self.cost = path[path.len() - 1].stay.1;
     }
 
     fn add_if_conflict(&mut self, state_i: &UnitState, state_j: &UnitState) {
@@ -148,7 +93,7 @@ impl CBS<'_> {
         }
     }
 
-    fn add_conflicts(&mut self, modified: &HashSet<usize>) {
+    fn find_conflicts(&mut self) {
         let mut state = Vec::with_capacity(self.solution.len());
         let end_time = self.cost;
         for path in &self.solution {
@@ -174,8 +119,7 @@ impl CBS<'_> {
             for (i, i_moved) in moved.iter().enumerate() {
                 for (j, j_moved) in moved.iter().enumerate().skip(i + 1) {
                     let includes_moved = *i_moved || *j_moved;
-                    let includes_modified = modified.contains(&i) || modified.contains(&j);
-                    if includes_moved && includes_modified {
+                    if includes_moved {
                         self.add_if_conflict(&state[i], &state[j])
                     }
                 }
@@ -183,10 +127,7 @@ impl CBS<'_> {
         }
     }
 
-    fn find_conflicts(&mut self, modified: &HashSet<usize>) {
-        self.clear_conflicts(modified);
-        self.add_conflicts(modified);
-    }
+    /// Exploration functions
 
     fn explore_conflict(&self, conflict: Conflict) -> Exploration {
         let constraints = generate_constraints(conflict);
@@ -211,18 +152,152 @@ impl CBS<'_> {
         }
         explorations
     }
+
+    fn change_path(&mut self, path: Path) {
+        for (idx, old_path) in self.solution.iter().enumerate() {
+            if path[0] == old_path[0] {
+                self.solution[idx] = path;
+                break;
+            }
+        }
+    }
 }
 
-fn generate_constraints(conflict: Conflict) -> (Constraint, Constraint) {
-    let constraint_0 = Constraint {
-        uid: conflict.0.uid,
-        rect: collisions(conflict.1.cell),
-        stay: conflict.1.stay,
-    };
-    let constraint_1 = Constraint {
-        uid: conflict.1.uid,
-        rect: collisions(conflict.0.cell),
-        stay: conflict.0.stay,
-    };
-    (constraint_0, constraint_1)
+#[derive(Clone, PartialEq, Eq)]
+pub struct Exploration {
+    conflict: Conflict,
+    constraints: (Constraint, Constraint),
+    solutions: (Option<Path>, Option<Path>),
+}
+
+impl Exploration {
+    fn score(&self) -> usize {
+        let mut min_score = match &self.solutions.0 {
+            Some(path) => path.len(),
+            None => usize::MAX,
+        };
+        min_score = match &self.solutions.1 {
+            Some(path) => min(min_score, path.len()),
+            None => min_score,
+        };
+        min_score
+    }
+
+    fn secondary_score(&self) -> usize {
+        let mut max_score = match &self.solutions.0 {
+            Some(path) => path.len(),
+            None => usize::MAX,
+        };
+        max_score = match &self.solutions.1 {
+            Some(path) => max(max_score, path.len()),
+            None => usize::MAX,
+        };
+        max_score
+    }
+
+    fn uids(&self) -> (Pair, Pair) {
+        self.conflict.uids()
+    }
+}
+
+// We want higher scores first
+impl Ord for Exploration {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other.score().cmp(&self.score())
+    }
+}
+
+impl PartialOrd for Exploration {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+fn prioritize(explorations: Vec<Exploration>) -> Vec<Exploration> {
+    let mut out: Vec<Exploration> = Vec::with_capacity(explorations.len());
+    for exploration in explorations {
+        let mut include = true;
+        let mut replace_at = None;
+        for (idx, chosen) in out.iter_mut().enumerate() {
+            if exploration.uids() == chosen.conflict.uids() {
+                if exploration.score() > chosen.score() {
+                    replace_at = Some(idx);
+                } else {
+                    include = false
+                }
+                break;
+            }
+        }
+        if include {
+            match replace_at {
+                Some(idx) => out[idx] = exploration,
+                None => out.push(exploration),
+            }
+        }
+    }
+    out.sort();
+    out
+}
+
+fn greedy_choices(explorations: Vec<Exploration>) -> Vec<Exploration> {
+    let mut out = Vec::with_capacity(explorations.len());
+    let mut seen = Vec::with_capacity(explorations.len() * 2);
+    for exploration in explorations {
+        let uids = exploration.uids();
+        if !(seen.contains(&uids.0) || seen.contains(&uids.1)) {
+            out.push(exploration);
+            seen.push(uids.0);
+            seen.push(uids.1);
+        }
+    }
+    out
+}
+
+fn expand_exploration(cbs: CBS, exploration: Exploration) -> Vec<CBS> {
+    let mut out = Vec::with_capacity(2);
+    match exploration.solutions.0 {
+        Some(path) => {
+            let mut child = cbs.clone();
+            child.cost = max(child.cost, path[path.len() - 1].stay.1);
+            child.constraints.push(exploration.constraints.0);
+            child.change_path(path);
+            out.push(child);
+        }
+        None => {}
+    }
+    match exploration.solutions.1 {
+        Some(path) => {
+            let mut child = cbs;
+            child.cost = max(child.cost, path[path.len() - 1].stay.1);
+            child.constraints.push(exploration.constraints.1);
+            child.change_path(path);
+            out.push(child);
+        }
+        None => {}
+    }
+    out
+}
+
+fn expand_explorations(cbs: CBS, explorations: Vec<Exploration>) -> Vec<CBS> {
+    let mut out = vec![cbs];
+    for exploration in explorations {
+        let mut new_out: Vec<CBS> = Vec::with_capacity(out.len() * 2);
+        for state in out {
+            new_out.append(&mut expand_exploration(state, exploration.clone()));
+        }
+        out = new_out;
+    }
+    for node in out.iter_mut() {
+        node.extend_paths();
+        node.conflicts = Vec::new();
+        node.find_conflicts();
+    }
+    out
+}
+
+pub fn expand_node(cbs: CBS) -> Vec<CBS> {
+    let mut explorations = cbs.explore();
+    explorations = prioritize(explorations);
+    explorations = greedy_choices(explorations);
+    expand_explorations(cbs, explorations)
 }

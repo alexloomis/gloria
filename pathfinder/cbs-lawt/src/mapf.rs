@@ -4,7 +4,6 @@ use grid::Grid;
 use std::collections::BinaryHeap;
 use std::ops::Sub;
 use std::rc::Rc;
-use std::usize;
 
 fn filter_constraints(start: Pair, constraints: &[Constraint]) -> Vec<Constraint> {
     let mut out = Vec::with_capacity(constraints.len());
@@ -45,18 +44,6 @@ fn open_allows_candidate(candidate: &ScoredCell, open: &BinaryHeap<ScoredCell>) 
     true
 }
 
-fn not_yet_closed(candidate: &ScoredCell, closed: &BinaryHeap<Rc<ScoredCell>>) -> bool {
-    for cell in closed {
-        // If candidate is cheaper than all remaining cells, it has not been closed yet
-        if candidate.cost < cell.cost {
-            break;
-        } else if cell.cell == candidate.cell && cell.stay == candidate.stay {
-            return false;
-        }
-    }
-    true
-}
-
 fn may_stop(candidate: &ScoredCell, constraints: &[Constraint]) -> bool {
     for constraint in constraints {
         if constraint.rect.contains(candidate.cell) && candidate.stay.0 <= constraint.stay.1 {
@@ -66,7 +53,7 @@ fn may_stop(candidate: &ScoredCell, constraints: &[Constraint]) -> bool {
     true
 }
 
-fn reconstruct_path(last: ScoredCell) -> Vec<ScoredCell> {
+fn reconstruct_path(last: ScoredCell) -> Path {
     let mut path = Vec::with_capacity(last.stay.1 + 1);
     path.push(last.clone());
     let mut prev = last;
@@ -180,7 +167,7 @@ impl MAPF {
         succ
     }
 
-    pub fn astar(&self, start: Pair, constraints: &[Constraint]) -> Vec<ScoredCell> {
+    pub fn astar(&self, start: Pair, constraints: &[Constraint]) -> Option<Path> {
         let my_constraints = filter_constraints(start, constraints);
         let (x_extent, y_extent) = self.grid.extent();
         let mut open = BinaryHeap::with_capacity(x_extent * y_extent);
@@ -194,7 +181,7 @@ impl MAPF {
         loop {
             let current = match open.pop() {
                 None => {
-                    return Vec::new();
+                    return None;
                 }
                 Some(sc) => sc,
             };
@@ -203,7 +190,8 @@ impl MAPF {
                     if self.destinations.contains(&successor.cell)
                         && may_stop(&successor, &my_constraints)
                     {
-                        return reconstruct_path(successor);
+                        let path = reconstruct_path(successor);
+                        return Some(path);
                     }
                     open.push(successor);
                 }
