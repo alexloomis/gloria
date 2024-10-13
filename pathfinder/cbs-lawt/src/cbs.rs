@@ -2,7 +2,6 @@ use crate::mapf::MAPF;
 use crate::prelude::*;
 use std::cmp::{max, min};
 use std::collections::{BinaryHeap, HashSet};
-use std::path;
 
 struct UnitState {
     uid: Pair,
@@ -329,7 +328,12 @@ fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
             None => panic!("Exhausted states. Should be impossible."),
             Some(new_node) => new_node,
         };
-        let children = expand_node(node);
+        let children = expand_node(node.clone());
+        if children.len() == 1 {
+            println!("{:?}", node.constraints);
+            println!("{:?}", children[0].constraints);
+            println!();
+        }
         for child in children {
             if child.conflicts.is_empty() {
                 return child.solution;
