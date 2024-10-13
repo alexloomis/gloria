@@ -1,7 +1,8 @@
 use crate::mapf::MAPF;
 use crate::prelude::*;
 use std::cmp::{max, min};
-use std::collections::HashSet;
+use std::collections::{BinaryHeap, HashSet};
+use std::path;
 
 struct UnitState {
     uid: Pair,
@@ -17,6 +18,24 @@ pub struct CBS<'a> {
     pub solution: Vec<Path>,
     pub cost: usize,
     pub conflicts: Vec<Conflict>,
+}
+
+// Min-heap, low cost first with ties broken by low numbers of conflicts, then constraints
+impl Ord for CBS<'_> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other
+            .cost
+            .cmp(&self.cost)
+            .then_with(|| other.conflicts.len().cmp(&self.conflicts.len()))
+            .then_with(|| other.constraints.len().cmp(&self.constraints.len()))
+            .then_with(|| other.solution.cmp(&self.solution))
+    }
+}
+
+impl PartialOrd for CBS<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl CBS<'_> {
@@ -163,7 +182,7 @@ impl CBS<'_> {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Exploration {
     conflict: Conflict,
     constraints: (Constraint, Constraint),
@@ -200,10 +219,13 @@ impl Exploration {
     }
 }
 
-// We want higher scores first
+// We want higher primary scores first, with lower secondary breaking ties
 impl Ord for Exploration {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other.score().cmp(&self.score())
+        other
+            .score()
+            .cmp(&self.score())
+            .then_with(|| self.secondary_score().cmp(&other.secondary_score()))
     }
 }
 
@@ -216,6 +238,9 @@ impl PartialOrd for Exploration {
 fn prioritize(explorations: Vec<Exploration>) -> Vec<Exploration> {
     let mut out: Vec<Exploration> = Vec::with_capacity(explorations.len());
     for exploration in explorations {
+        if exploration.solutions == (None, None) {
+            continue;
+        }
         let mut include = true;
         let mut replace_at = None;
         for (idx, chosen) in out.iter_mut().enumerate() {
@@ -255,25 +280,19 @@ fn greedy_choices(explorations: Vec<Exploration>) -> Vec<Exploration> {
 
 fn expand_exploration(cbs: CBS, exploration: Exploration) -> Vec<CBS> {
     let mut out = Vec::with_capacity(2);
-    match exploration.solutions.0 {
-        Some(path) => {
-            let mut child = cbs.clone();
-            child.cost = max(child.cost, path[path.len() - 1].stay.1);
-            child.constraints.push(exploration.constraints.0);
-            child.change_path(path);
-            out.push(child);
-        }
-        None => {}
+    if let Some(path) = exploration.solutions.0 {
+        let mut child = cbs.clone();
+        child.cost = max(child.cost, path[path.len() - 1].stay.1);
+        child.constraints.push(exploration.constraints.0);
+        child.change_path(path);
+        out.push(child);
     }
-    match exploration.solutions.1 {
-        Some(path) => {
-            let mut child = cbs;
-            child.cost = max(child.cost, path[path.len() - 1].stay.1);
-            child.constraints.push(exploration.constraints.1);
-            child.change_path(path);
-            out.push(child);
-        }
-        None => {}
+    if let Some(path) = exploration.solutions.1 {
+        let mut child = cbs;
+        child.cost = max(child.cost, path[path.len() - 1].stay.1);
+        child.constraints.push(exploration.constraints.1);
+        child.change_path(path);
+        out.push(child);
     }
     out
 }
@@ -295,9 +314,33 @@ fn expand_explorations(cbs: CBS, explorations: Vec<Exploration>) -> Vec<CBS> {
     out
 }
 
-pub fn expand_node(cbs: CBS) -> Vec<CBS> {
+fn expand_node(cbs: CBS) -> Vec<CBS> {
     let mut explorations = cbs.explore();
     explorations = prioritize(explorations);
     explorations = greedy_choices(explorations);
     expand_explorations(cbs, explorations)
+}
+
+fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
+    let mut open = BinaryHeap::new();
+    open.push(cbs);
+    loop {
+        let node = match open.pop() {
+            None => panic!("Exhausted states. Should be impossible."),
+            Some(new_node) => new_node,
+        };
+        let children = expand_node(node);
+        for child in children {
+            if child.conflicts.is_empty() {
+                return child.solution;
+            } else {
+                open.push(child);
+            }
+        }
+    }
+}
+
+pub fn solve_mapf(mapf: &MAPF) -> Vec<Path> {
+    let cbs = CBS::init(mapf);
+    greedy_with_heuristic(cbs)
 }
