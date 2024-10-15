@@ -80,23 +80,23 @@ impl CBS<'_> {
             if path.is_empty() {
                 return;
             }
-            if path[path.len() - 1].stay.1 > end_time {
-                end_time = path[path.len() - 1].stay.1
+            if path[path.len() - 1].duration.1 > end_time {
+                end_time = path[path.len() - 1].duration.1
             }
         }
         for path in self.solution.iter_mut() {
             let idx = path.len() - 1;
-            path[idx].stay.1 = end_time
+            path[idx].duration.1 = end_time
         }
     }
 
     fn find_cost(&mut self) {
         let path = &self.solution[0];
-        self.cost = path[path.len() - 1].stay.1;
+        self.cost = path[path.len() - 1].duration.1;
     }
 
     fn add_if_conflict(&mut self, state_i: &UnitState, state_j: &UnitState) {
-        if rect_conflict(state_i.cell, state_j.cell) {
+        if units_collide(state_i.cell, state_j.cell) {
             let cii = ConflictInfo {
                 uid: state_i.uid,
                 cell: state_i.cell,
@@ -116,19 +116,19 @@ impl CBS<'_> {
         let end_time = self.cost;
         for path in &self.solution {
             state.push(UnitState {
-                uid: path[0].cell,
+                uid: path[0].location,
                 idx: 0,
-                cell: path[0].cell,
-                stay: path[0].stay,
+                cell: path[0].location,
+                stay: path[0].duration,
             });
         }
         for time in 1..=end_time {
             let mut moved = vec![false; state.len()];
             for (i, path) in self.solution.iter().enumerate() {
                 let idx = state[i].idx;
-                if time > path[idx].stay.1 && idx < path.len() - 1 {
-                    state[i].cell = path[idx + 1].cell;
-                    state[i].stay = path[idx + 1].stay;
+                if time > path[idx].duration.1 && idx < path.len() - 1 {
+                    state[i].cell = path[idx + 1].location;
+                    state[i].stay = path[idx + 1].duration;
                     state[i].idx += 1;
                     moved[i] = true;
                 }
@@ -287,14 +287,14 @@ fn expand_exploration(cbs: CBS, exploration: Exploration) -> Vec<CBS> {
     let mut out = Vec::with_capacity(2);
     if let Some(path) = exploration.solutions.0 {
         let mut child = cbs.clone();
-        child.cost = max(child.cost, path[path.len() - 1].stay.1);
+        child.cost = max(child.cost, path[path.len() - 1].duration.1);
         child.constraints.push(exploration.constraints.0);
         child.change_path(path);
         out.push(child);
     }
     if let Some(path) = exploration.solutions.1 {
         let mut child = cbs;
-        child.cost = max(child.cost, path[path.len() - 1].stay.1);
+        child.cost = max(child.cost, path[path.len() - 1].duration.1);
         child.constraints.push(exploration.constraints.1);
         child.change_path(path);
         out.push(child);

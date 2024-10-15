@@ -44,7 +44,7 @@ fn main() {
     for i in 0..sln.len() {
         println!("Solution {}:", i);
         for j in &sln[i] {
-            println!("Stayed at {:?} for {:?}", j.cell, j.stay);
+            println!("Stayed at {:?} for {:?}", j.location, j.duration);
         }
         println!()
     }
