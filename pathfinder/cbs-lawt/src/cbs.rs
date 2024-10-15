@@ -163,6 +163,12 @@ impl CBS<'_> {
     }
 
     fn explore(&self) -> Vec<Exploration> {
+        println!("{:?}", self.constraints);
+        println!("{:?}", self.solution);
+        for conflict in &self.conflicts {
+            println!("{:?}", conflict);
+        }
+        println!();
         let mut explorations = Vec::with_capacity(self.conflicts.len());
         for conflict in &self.conflicts {
             let exploration = self.explore_conflict(*conflict);

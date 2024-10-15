@@ -30,10 +30,10 @@ impl Rect {
     }
 
     pub fn contains(&self, cell: Pair) -> bool {
-        //(self.origin.0..=self.origin.0 + self.extent.0).contains(&cell.0)
-        //    && (self.origin.1..=self.origin.1 + self.extent.1).contains(&cell.1)
+        //(self.origin.0..self.origin.0 + self.extent.0).contains(&cell.0)
+        //    && (self.origin.1..self.origin.1 + self.extent.1).contains(&cell.1)
         let (x, dx, y, dy) = (self.origin.0, self.extent.0, self.origin.1, self.extent.1);
-        x <= cell.0 && cell.0 <= x + dx && y <= cell.1 && cell.1 <= y + dy
+        x <= cell.0 && cell.0 < x + dx && y <= cell.1 && cell.1 < y + dy
     }
 }
 

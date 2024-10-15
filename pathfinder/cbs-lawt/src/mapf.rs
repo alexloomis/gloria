@@ -20,7 +20,7 @@ fn satisfies_constraints(scored_cell: &ScoredCell, constraints: &[Constraint]) -
     for constraint in constraints {
         let relevant_cell = constraint.rect.contains(scored_cell.cell);
         let relevant_time =
-        // We havent left before the constraint begins
+        // We haven't left before the constraint begins
         constraint.stay.0 <= scored_cell.stay.1
         &&
         // We didn't arrive after the constraint ended
