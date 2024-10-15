@@ -1,10 +1,30 @@
 use std::collections::HashMap;
-use std::ops::Sub;
+use std::ops;
 use std::rc::Rc;
 
-pub type Pair = (usize, usize);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Pair(pub usize, pub usize);
 
-pub const UNIT_SIZE: Pair = (2, 2);
+impl ops::Add<Pair> for Pair {
+    type Output = Pair;
+    fn add(self, rhs: Pair) -> Self::Output {
+        Pair(self.0 + rhs.0, self.1 + rhs.1)
+    }
+}
+
+impl From<(usize, usize)> for Pair {
+    fn from(value: (usize, usize)) -> Self {
+        Pair(value.0, value.1)
+    }
+}
+
+impl From<Pair> for (usize, usize) {
+    fn from(value: Pair) -> Self {
+        (value.0, value.1)
+    }
+}
+
+pub const UNIT_SIZE: Pair = Pair(2, 2);
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct CellInfo {
@@ -12,6 +32,7 @@ pub struct CellInfo {
     pub blocked: bool,
 }
 
+// A rect with origin (0,0) and extent (x,y) includes all points (a,b) with 0 <= a <= x and 0 <= b <= y.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub struct Rect {
     pub origin: Pair,
@@ -19,45 +40,39 @@ pub struct Rect {
 }
 
 impl Rect {
+    pub fn size(&self) -> Pair {
+        self.extent + Pair(1, 1)
+    }
+
     pub fn cells(&self) -> Vec<Pair> {
-        let mut out = Vec::with_capacity(self.extent.0 * self.extent.1);
-        for dx in 0..self.extent.0 {
-            for dy in 0..self.extent.1 {
-                out.push((self.origin.0 + dx, self.origin.1 + dy))
+        let mut out = Vec::with_capacity(self.size().0 * self.size().1);
+        for dx in 0..self.size().0 {
+            for dy in 0..self.size().1 {
+                out.push(self.origin + Pair(dx, dy))
             }
         }
         out
     }
 
     pub fn contains(&self, cell: Pair) -> bool {
-        //(self.origin.0..self.origin.0 + self.extent.0).contains(&cell.0)
-        //    && (self.origin.1..self.origin.1 + self.extent.1).contains(&cell.1)
         let (x, dx, y, dy) = (self.origin.0, self.extent.0, self.origin.1, self.extent.1);
-        x <= cell.0 && cell.0 < x + dx && y <= cell.1 && cell.1 < y + dy
+        x <= cell.0 && cell.0 <= x + dx && y <= cell.1 && cell.1 <= y + dy
+    }
+
+    pub fn collides(&self, rect_1: Rect) -> bool {
+        self.origin.0 <= rect_1.origin.0 + rect_1.extent.0
+            && rect_1.origin.0 <= self.origin.0 + self.extent.0
+            && self.origin.1 <= rect_1.origin.1 + rect_1.extent.1
+            && rect_1.origin.1 <= self.origin.1 + self.extent.1
     }
 }
 
-pub fn rect_conflict(cell1: Pair, cell2: Pair) -> bool {
-    let ((x1, y1), (x2, y2), (dx, dy)) = (cell1, cell2, UNIT_SIZE);
-    x1 < x2 + dx && x2 < x1 + dx && y1 < y2 + dy && y2 < y1 + dy
-}
-
-// A unit in this rect collides with a unit at cell
-fn collisions(cell: Pair) -> Rect {
-    let origin = (
-        (cell.0 + 1).saturating_sub(UNIT_SIZE.0),
-        (cell.1 + 1).saturating_sub(UNIT_SIZE.1),
-    );
-    let extent = ((2 * UNIT_SIZE.0).sub(1), (2 * UNIT_SIZE.1).sub(1));
-    Rect { origin, extent }
-}
-
 pub trait HashMapExt<T> {
-    fn min_key(&self) -> Option<(T, usize)>;
+    fn min_value(&self) -> Option<(T, usize)>;
 }
 
 impl<T: Copy> HashMapExt<T> for HashMap<T, usize> {
-    fn min_key(&self) -> Option<(T, usize)> {
+    fn min_value(&self) -> Option<(T, usize)> {
         let mut best_key = None;
         let mut best_value = usize::MAX;
         for (key, value) in self.iter() {
@@ -73,15 +88,15 @@ impl<T: Copy> HashMapExt<T> for HashMap<T, usize> {
 #[derive(Clone, Debug)]
 pub struct ScoredCell {
     // Cost including heuristic, what time do we think we will arrive?
+    pub location: Rect,
+    pub duration: Pair,
     pub cost: usize,
-    pub stay: Pair,
-    pub cell: Pair,
     pub prev: Option<Rc<ScoredCell>>,
 }
 
 impl PartialEq for ScoredCell {
     fn eq(&self, other: &Self) -> bool {
-        self.cell == other.cell && self.stay == other.stay
+        self.location == other.location && self.duration == other.duration
     }
 }
 
@@ -94,9 +109,9 @@ impl Ord for ScoredCell {
         other
             .cost
             .cmp(&self.cost)
-            .then_with(|| other.stay.1.cmp(&self.stay.1))
-            .then_with(|| other.stay.0.cmp(&self.stay.0))
-            .then_with(|| other.cell.cmp(&self.cell))
+            .then_with(|| other.duration.1.cmp(&self.duration.1))
+            .then_with(|| other.duration.0.cmp(&self.duration.0))
+            .then_with(|| other.location.cmp(&self.location))
             .then_with(|| other.prev.cmp(&self.prev))
     }
 }
@@ -109,15 +124,15 @@ impl PartialOrd for ScoredCell {
 
 pub type Path = Vec<ScoredCell>;
 
-pub fn unfold_path(path: Path) -> Vec<Pair> {
+pub fn unfold_path(path: Path) -> Vec<Rect> {
     if path.is_empty() {
         return Vec::new();
     }
-    let mut out = Vec::with_capacity(path[path.len() - 1].stay.1 + 1);
-    out.push(path[0].cell);
+    let mut out = Vec::with_capacity(path[path.len() - 1].duration.1 + 1);
+    out.push(path[0].location);
     for scored_cell in path {
-        for _ in scored_cell.stay.0..=scored_cell.stay.1 {
-            out.push(scored_cell.cell);
+        for _ in scored_cell.duration.0..=scored_cell.duration.1 {
+            out.push(scored_cell.location);
         }
     }
     out
@@ -126,8 +141,8 @@ pub fn unfold_path(path: Path) -> Vec<Pair> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ConflictInfo {
     pub uid: Pair,
-    pub cell: Pair,
-    pub stay: Pair,
+    pub location: Rect,
+    pub duration: Pair,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -139,25 +154,26 @@ impl Conflict {
     }
 }
 
-// Constraint means that the unit's origin is blocked from the tiles, not the unit's entire body
+// Constraint means that the unit may not collide with the region
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Constraint {
-    // Unit ID is its starting coord
     pub uid: Pair,
-    pub rect: Rect,
-    pub stay: Pair,
+    pub location: Rect,
+    pub duration: Pair,
 }
 
-pub fn generate_constraints(conflict: Conflict) -> (Constraint, Constraint) {
-    let constraint_0 = Constraint {
-        uid: conflict.0.uid,
-        rect: collisions(conflict.1.cell),
-        stay: conflict.1.stay,
-    };
-    let constraint_1 = Constraint {
-        uid: conflict.1.uid,
-        rect: collisions(conflict.0.cell),
-        stay: conflict.0.stay,
-    };
-    (constraint_0, constraint_1)
+impl Conflict {
+    pub fn constraints(&self) -> (Constraint, Constraint) {
+        let constraint_0 = Constraint {
+            uid: self.0.uid,
+            location: self.1.location,
+            duration: self.1.duration,
+        };
+        let constraint_1 = Constraint {
+            uid: self.1.uid,
+            location: self.0.location,
+            duration: self.0.duration,
+        };
+        (constraint_0, constraint_1)
+    }
 }
