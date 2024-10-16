@@ -177,7 +177,7 @@ impl MAPF {
 
     pub fn astar(&self, start: Pair, constraints: &[Constraint]) -> Option<Path> {
         let my_constraints = filter_constraints(start, constraints);
-        let (x_extent, y_extent) = self.grid.extent();
+        let (x_extent, y_extent) = self.grid.effective_size();
         let mut open = BinaryHeap::with_capacity(x_extent * y_extent);
         open.push(ScoredCell {
             cost: 0,

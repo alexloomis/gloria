@@ -8,7 +8,7 @@ pub struct Pair(pub usize, pub usize);
 impl ops::Add<Pair> for Pair {
     type Output = Pair;
     fn add(self, rhs: Pair) -> Self::Output {
-        Pair(self.0 + rhs.0, self.1 + rhs.1)
+        Pair(self.0.wrapping_add(rhs.0), self.1.wrapping_add(rhs.1))
     }
 }
 
@@ -54,16 +54,20 @@ impl Rect {
         out
     }
 
+    pub fn max_coord(&self) -> Pair {
+        self.origin + self.extent
+    }
+
     pub fn contains(&self, cell: Pair) -> bool {
         let (x, dx, y, dy) = (self.origin.0, self.extent.0, self.origin.1, self.extent.1);
         x <= cell.0 && cell.0 <= x + dx && y <= cell.1 && cell.1 <= y + dy
     }
 
     pub fn collides(&self, rect_1: Rect) -> bool {
-        self.origin.0 <= rect_1.origin.0 + rect_1.extent.0
-            && rect_1.origin.0 <= self.origin.0 + self.extent.0
-            && self.origin.1 <= rect_1.origin.1 + rect_1.extent.1
-            && rect_1.origin.1 <= self.origin.1 + self.extent.1
+        self.origin.0 <= rect_1.max_coord().0
+            && rect_1.origin.0 <= self.max_coord().0
+            && self.origin.1 <= rect_1.max_coord().1
+            && rect_1.origin.1 <= self.max_coord().1
     }
 }
 
