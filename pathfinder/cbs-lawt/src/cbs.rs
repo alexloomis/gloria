@@ -1,4 +1,4 @@
-use crate::mapf::MAPF;
+use crate::mapf::AStar;
 use crate::prelude::*;
 use std::cmp::{max, min};
 use std::collections::{BinaryHeap, HashSet};
@@ -12,7 +12,7 @@ struct UnitState {
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct CBS<'a> {
-    pub mapf: &'a MAPF,
+    pub mapf: &'a AStar,
     pub constraints: Vec<Constraint>,
     pub solution: Vec<Path>,
     pub cost: usize,
@@ -40,7 +40,7 @@ impl PartialOrd for CBS<'_> {
 impl CBS<'_> {
     /// init() functions
 
-    fn new(mapf: &MAPF) -> CBS {
+    fn new(mapf: &AStar) -> CBS {
         CBS {
             mapf,
             constraints: Vec::new(),
@@ -50,7 +50,7 @@ impl CBS<'_> {
         }
     }
 
-    pub fn init(mapf: &MAPF) -> CBS {
+    pub fn init(mapf: &AStar) -> CBS {
         let mut cbs = CBS::new(mapf);
         let num_units = cbs.solution.len();
         let mut modified: HashSet<usize> = HashSet::with_capacity(num_units);
@@ -350,7 +350,7 @@ fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
     }
 }
 
-pub fn solve_mapf(mapf: &MAPF) -> Vec<Path> {
+pub fn solve_mapf(mapf: &AStar) -> Vec<Path> {
     let cbs = CBS::init(mapf);
     greedy_with_heuristic(cbs)
 }

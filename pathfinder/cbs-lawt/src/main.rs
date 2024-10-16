@@ -1,5 +1,5 @@
 use cbs_lawt::cbs::solve_mapf;
-use cbs_lawt::mapf::MAPF;
+use cbs_lawt::mapf::AStar;
 use cbs_lawt::prelude::{CellInfo, Pair};
 use grid::Grid;
 
@@ -18,7 +18,7 @@ fn main() {
     grid[(3, 2)].blocked = true;
     grid[(1, 1)].cost = 2;
 
-    let mapf: MAPF = MAPF::init(origins.to_vec(), destinations.to_vec(), grid);
+    let mapf: AStar = AStar::init(origins.to_vec(), destinations.to_vec(), grid);
     //let mut constraints = Vec::new();
     //for i in 1..=10 {
     //    constraints.push(Constraint {

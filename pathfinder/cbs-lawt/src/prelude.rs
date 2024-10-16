@@ -24,6 +24,15 @@ impl From<Pair> for (usize, usize) {
     }
 }
 
+impl Pair {
+    pub fn extend(self, extent: Pair) -> Rect {
+        Rect {
+            origin: self,
+            extent,
+        }
+    }
+}
+
 pub const UNIT_SIZE: Pair = Pair(2, 2);
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -40,11 +49,11 @@ pub struct Rect {
 }
 
 impl Rect {
-    pub fn size(&self) -> Pair {
+    pub fn size(self) -> Pair {
         self.extent + Pair(1, 1)
     }
 
-    pub fn cells(&self) -> Vec<Pair> {
+    pub fn cells(self) -> Vec<Pair> {
         let mut out = Vec::with_capacity(self.size().0 * self.size().1);
         for dx in 0..self.size().0 {
             for dy in 0..self.size().1 {
@@ -54,16 +63,16 @@ impl Rect {
         out
     }
 
-    pub fn max_coord(&self) -> Pair {
+    pub fn max_coord(self) -> Pair {
         self.origin + self.extent
     }
 
-    pub fn contains(&self, cell: Pair) -> bool {
+    pub fn contains(self, cell: Pair) -> bool {
         let (x, dx, y, dy) = (self.origin.0, self.extent.0, self.origin.1, self.extent.1);
         x <= cell.0 && cell.0 <= x + dx && y <= cell.1 && cell.1 <= y + dy
     }
 
-    pub fn collides(&self, rect_1: Rect) -> bool {
+    pub fn intersects(self, rect_1: Rect) -> bool {
         self.origin.0 <= rect_1.max_coord().0
             && rect_1.origin.0 <= self.max_coord().0
             && self.origin.1 <= rect_1.max_coord().1
@@ -153,7 +162,7 @@ pub struct ConflictInfo {
 pub struct Conflict(pub ConflictInfo, pub ConflictInfo);
 
 impl Conflict {
-    pub fn uids(&self) -> (Pair, Pair) {
+    pub fn uids(self) -> (Pair, Pair) {
         (self.0.uid, self.1.uid)
     }
 }
@@ -167,7 +176,7 @@ pub struct Constraint {
 }
 
 impl Conflict {
-    pub fn constraints(&self) -> (Constraint, Constraint) {
+    pub fn constraints(self) -> (Constraint, Constraint) {
         let constraint_0 = Constraint {
             uid: self.0.uid,
             location: self.1.location,
