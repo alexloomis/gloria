@@ -40,23 +40,18 @@ impl PartialOrd for CBS<'_> {
 impl CBS<'_> {
     /// init() functions
 
-    fn new(mapf: &AStar) -> CBS {
+    fn new(astar: &AStar) -> CBS {
         CBS {
-            astar: mapf,
+            astar,
             constraints: Vec::new(),
-            solution: Vec::with_capacity(mapf.origins.len()),
+            solution: Vec::with_capacity(astar.origins.len()),
             cost: 0,
             conflicts: Vec::new(),
         }
     }
 
-    pub fn init(mapf: &AStar) -> CBS {
-        let mut cbs = CBS::new(mapf);
-        let num_units = cbs.solution.len();
-        let mut modified: HashSet<usize> = HashSet::with_capacity(num_units);
-        for i in 0..num_units {
-            modified.insert(i);
-        }
+    pub fn init(astar: &AStar) -> CBS {
+        let mut cbs = CBS::new(astar);
         cbs.find_paths();
         cbs.extend_paths();
         cbs.find_cost();
@@ -78,7 +73,7 @@ impl CBS<'_> {
         let mut end_time = 0;
         for path in &self.solution {
             if path.is_empty() {
-                return;
+                panic!("Empty solution!");
             }
             if path[path.len() - 1].duration.1 > end_time {
                 end_time = path[path.len() - 1].duration.1
@@ -95,20 +90,18 @@ impl CBS<'_> {
         self.cost = path[path.len() - 1].duration.1;
     }
 
-    fn add_if_intersects(&mut self, state_i: &UnitState, state_j: &UnitState) {
-        if state_i.location.intersects(state_j.location) {
-            let cii = ConflictInfo {
-                uid: state_i.uid,
-                location: state_i.location,
-                duration: state_i.duration,
-            };
-            let cij = ConflictInfo {
-                uid: state_j.uid,
-                location: state_j.location,
-                duration: state_j.duration,
-            };
-            self.conflicts.push(Conflict(cii, cij));
-        }
+    fn to_conflict(state_i: &UnitState, state_j: &UnitState) -> Conflict {
+        let cii = ConflictInfo {
+            uid: state_i.uid,
+            location: state_i.location,
+            duration: state_i.duration,
+        };
+        let cij = ConflictInfo {
+            uid: state_j.uid,
+            location: state_j.location,
+            duration: state_j.duration,
+        };
+        Conflict(cii, cij)
     }
 
     fn find_conflicts(&mut self) {
@@ -136,9 +129,10 @@ impl CBS<'_> {
             // Check for conflicts
             for (i, i_moved) in moved.iter().enumerate() {
                 for (j, j_moved) in moved.iter().enumerate().skip(i + 1) {
+                    let intersects = state[i].location.intersects(state[j].location);
                     let includes_moved = *i_moved || *j_moved;
-                    if includes_moved {
-                        self.add_if_intersects(&state[i], &state[j])
+                    if intersects && includes_moved {
+                        self.conflicts.push(CBS::to_conflict(&state[i], &state[j]));
                     }
                 }
             }
@@ -146,6 +140,7 @@ impl CBS<'_> {
     }
 
     /// Exploration functions
+    // TODO: 70% sure the bug is somewhere between here and EOF.
 
     fn explore_conflict(&self, conflict: Conflict) -> Exploration {
         let constraints = Conflict::constraints(conflict);
@@ -163,12 +158,17 @@ impl CBS<'_> {
     }
 
     fn explore(&self) -> Vec<Exploration> {
-        //println!("{:?}", self.constraints);
-        //println!("{:?}", self.solution);
+        println!("Constraints:");
+        println!("{:?}", self.constraints);
+        println!("Solution:");
+        println!("{:?}", self.solution);
         //for conflict in &self.conflicts {
         //    println!("{:?}", conflict);
         //}
-        //println!();
+        println!();
+        if self.constraints.len() >= 2 {
+            panic!()
+        }
         let mut explorations = Vec::with_capacity(self.conflicts.len());
         for conflict in &self.conflicts {
             let exploration = self.explore_conflict(*conflict);
@@ -335,11 +335,13 @@ fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
             Some(new_node) => new_node,
         };
         let children = expand_node(node.clone());
-        //if children.len() == 1 {
-        //    println!("{:?}", node.constraints);
-        //    println!("{:?}", children[0].constraints);
-        //    println!();
-        //}
+        if children.len() == 1 {
+            println!("Old constraints:");
+            println!("{:?}", node.constraints);
+            println!("New constraints:");
+            println!("{:?}", children[0].constraints);
+            println!();
+        }
         for child in children {
             if child.conflicts.is_empty() {
                 return child.solution;

@@ -15,7 +15,7 @@ fn filter_constraints(uid: Pair, constraints: &[Constraint]) -> Vec<Constraint> 
     out
 }
 
-// We assume the constraints have already been filtered
+// We assume the constraints have already been filtered by unit
 fn satisfies_constraints(scored_cell: &ScoredCell, constraints: &[Constraint]) -> bool {
     for constraint in constraints {
         let relevant_cell = constraint.location.intersects(scored_cell.location);

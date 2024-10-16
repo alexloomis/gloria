@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::ops;
 use std::rc::Rc;
 
@@ -106,7 +107,7 @@ impl<T: Copy> HashMapExt<T> for HashMap<T, usize> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ScoredCell {
     // Cost including heuristic, what time do we think we will arrive?
     pub location: Rect,
@@ -143,6 +144,16 @@ impl PartialOrd for ScoredCell {
     }
 }
 
+impl Debug for ScoredCell {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "({}, {}) × ({}, {})",
+            self.location.origin.0, self.location.origin.1, self.duration.0, self.duration.1
+        )
+    }
+}
+
 pub type Path = Vec<ScoredCell>;
 
 pub fn unfold_path(path: Path) -> Vec<Rect> {
@@ -176,11 +187,26 @@ impl Conflict {
 }
 
 // Constraint means that the unit may not collide with the region
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Constraint {
     pub uid: Pair,
     pub location: Rect,
     pub duration: Pair,
+}
+
+impl Debug for Constraint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "({}, {}) : ({}, {}) × ({}, {})",
+            self.uid.0,
+            self.uid.1,
+            self.location.origin.0,
+            self.location.origin.1,
+            self.duration.0,
+            self.duration.1
+        )
+    }
 }
 
 impl Conflict {
