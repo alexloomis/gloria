@@ -1,18 +1,18 @@
-use crate::mapf::AStar;
+use crate::astar::AStar;
 use crate::prelude::*;
 use std::cmp::{max, min};
 use std::collections::{BinaryHeap, HashSet};
 
 struct UnitState {
     uid: Pair,
-    idx: usize,
-    cell: Pair,
-    stay: Pair,
+    path_idx: usize,
+    location: Rect,
+    duration: Pair,
 }
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct CBS<'a> {
-    pub mapf: &'a AStar,
+    pub astar: &'a AStar,
     pub constraints: Vec<Constraint>,
     pub solution: Vec<Path>,
     pub cost: usize,
@@ -42,7 +42,7 @@ impl CBS<'_> {
 
     fn new(mapf: &AStar) -> CBS {
         CBS {
-            mapf,
+            astar: mapf,
             constraints: Vec::new(),
             solution: Vec::with_capacity(mapf.origins.len()),
             cost: 0,
@@ -65,9 +65,9 @@ impl CBS<'_> {
     }
 
     fn find_paths(&mut self) {
-        for cell in &self.mapf.origins {
+        for cell in &self.astar.origins {
             let path = self
-                .mapf
+                .astar
                 .astar(*cell, &self.constraints)
                 .expect("Unable to find preliminary path!");
             self.solution.push(path);
@@ -95,17 +95,17 @@ impl CBS<'_> {
         self.cost = path[path.len() - 1].duration.1;
     }
 
-    fn add_if_conflict(&mut self, state_i: &UnitState, state_j: &UnitState) {
-        if units_collide(state_i.cell, state_j.cell) {
+    fn add_if_intersects(&mut self, state_i: &UnitState, state_j: &UnitState) {
+        if state_i.location.intersects(state_j.location) {
             let cii = ConflictInfo {
                 uid: state_i.uid,
-                cell: state_i.cell,
-                stay: state_i.stay,
+                location: state_i.location,
+                duration: state_i.duration,
             };
             let cij = ConflictInfo {
                 uid: state_j.uid,
-                cell: state_j.cell,
-                stay: state_j.stay,
+                location: state_j.location,
+                duration: state_j.duration,
             };
             self.conflicts.push(Conflict(cii, cij));
         }
@@ -116,20 +116,20 @@ impl CBS<'_> {
         let end_time = self.cost;
         for path in &self.solution {
             state.push(UnitState {
-                uid: path[0].location,
-                idx: 0,
-                cell: path[0].location,
-                stay: path[0].duration,
+                uid: path[0].location.origin,
+                path_idx: 0,
+                location: path[0].location,
+                duration: path[0].duration,
             });
         }
         for time in 1..=end_time {
             let mut moved = vec![false; state.len()];
             for (i, path) in self.solution.iter().enumerate() {
-                let idx = state[i].idx;
+                let idx = state[i].path_idx;
                 if time > path[idx].duration.1 && idx < path.len() - 1 {
-                    state[i].cell = path[idx + 1].location;
-                    state[i].stay = path[idx + 1].duration;
-                    state[i].idx += 1;
+                    state[i].location = path[idx + 1].location;
+                    state[i].duration = path[idx + 1].duration;
+                    state[i].path_idx += 1;
                     moved[i] = true;
                 }
             }
@@ -138,7 +138,7 @@ impl CBS<'_> {
                 for (j, j_moved) in moved.iter().enumerate().skip(i + 1) {
                     let includes_moved = *i_moved || *j_moved;
                     if includes_moved {
-                        self.add_if_conflict(&state[i], &state[j])
+                        self.add_if_intersects(&state[i], &state[j])
                     }
                 }
             }
@@ -148,13 +148,13 @@ impl CBS<'_> {
     /// Exploration functions
 
     fn explore_conflict(&self, conflict: Conflict) -> Exploration {
-        let constraints = generate_constraints(conflict);
+        let constraints = Conflict::constraints(conflict);
         let mut constraints_0 = self.constraints.clone();
         constraints_0.push(constraints.0);
-        let path_0 = self.mapf.astar(constraints.0.uid, &constraints_0);
+        let path_0 = self.astar.astar(constraints.0.uid, &constraints_0);
         let mut constraints_1 = self.constraints.clone();
         constraints_1.push(constraints.1);
-        let path_1 = self.mapf.astar(constraints.1.uid, &constraints_1);
+        let path_1 = self.astar.astar(constraints.1.uid, &constraints_1);
         Exploration {
             conflict,
             constraints,

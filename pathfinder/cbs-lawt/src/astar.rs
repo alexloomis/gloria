@@ -72,8 +72,7 @@ fn reconstruct_path(last: ScoredCell) -> Path {
 #[derive(PartialEq, Eq)]
 pub struct AStar {
     pub grid: GridExt,
-    // TODO: origins and destinations should be rects
-    // or have unit_size as a parameter.
+    pub origins: Vec<Pair>,
     pub destinations: Vec<Pair>,
     pub unit_extent: Pair,
     pub heuristic: Grid<usize>,
@@ -126,7 +125,12 @@ impl AStar {
     //    }
     //}
 
-    pub fn init(destinations: Vec<Pair>, unit_extent: Pair, grid: Grid<CellInfo>) -> AStar {
+    pub fn init(
+        origins: Vec<Pair>,
+        destinations: Vec<Pair>,
+        unit_extent: Pair,
+        grid: Grid<CellInfo>,
+    ) -> AStar {
         let mut out = AStar {
             heuristic: Grid::init(
                 grid.rows().sub(UNIT_SIZE.1) + 1,
@@ -135,7 +139,8 @@ impl AStar {
             ),
             unit_extent,
             grid: GridExt::new(grid),
-            destinations: destinations.clone(),
+            origins,
+            destinations,
         };
         //out.verify_destination_count();
         //out.verify_cells(&origins);
@@ -173,14 +178,14 @@ impl AStar {
         succ
     }
 
-    pub fn astar(&self, start: Rect, constraints: &[Constraint]) -> Option<Path> {
-        let my_constraints = filter_constraints(start.origin, constraints);
-        let Pair(x_extent, y_extent) = self.grid.effective_size(start.extent);
+    pub fn astar(&self, start: Pair, constraints: &[Constraint]) -> Option<Path> {
+        let my_constraints = filter_constraints(start, constraints);
+        let Pair(x_extent, y_extent) = self.grid.effective_size(self.unit_extent);
         let mut open = BinaryHeap::with_capacity(x_extent * y_extent);
         open.push(ScoredCell {
             cost: 0,
             duration: Pair(0, 0),
-            location: start,
+            location: start.extend(self.unit_extent),
             prev: None,
         });
 
