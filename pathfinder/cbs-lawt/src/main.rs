@@ -1,11 +1,11 @@
+use cbs_lawt::astar::AStar;
 use cbs_lawt::cbs::solve_mapf;
-use cbs_lawt::mapf::AStar;
 use cbs_lawt::prelude::{CellInfo, Pair};
 use grid::Grid;
 
 fn main() {
-    let origins: [Pair; 2] = [(0, 0), (3, 0)];
-    let destinations: [Pair; 2] = [(0, 3), (2, 3)];
+    let origins: [Pair; 2] = [Pair(0, 0), Pair(3, 0)];
+    let destinations: [Pair; 2] = [Pair(0, 3), Pair(2, 3)];
     let mut grid: Grid<CellInfo> = Grid::init(
         5,
         6,
@@ -18,7 +18,7 @@ fn main() {
     grid[(3, 2)].blocked = true;
     grid[(1, 1)].cost = 2;
 
-    let mapf: AStar = AStar::init(origins.to_vec(), destinations.to_vec(), grid);
+    let mapf: AStar = AStar::init(origins.to_vec(), destinations.to_vec(), Pair(1, 1), grid);
     //let mut constraints = Vec::new();
     //for i in 1..=10 {
     //    constraints.push(Constraint {

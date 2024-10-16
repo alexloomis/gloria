@@ -47,29 +47,24 @@ impl GridExt {
     }
 
     pub fn neighbors(&self, rect: Rect) -> Vec<Rect> {
-        let mut out = Vec::with_capacity(4);
         let candidates = [
-            Rect {
-                origin: rect.origin + Pair(1, 0),
-                extent: rect.extent,
-            },
-            Rect {
-                origin: rect.origin + Pair(0, 1),
-                extent: rect.extent,
-            },
-            Rect {
-                origin: rect.origin + Pair(usize::MAX, 0),
-                extent: rect.extent,
-            },
-            Rect {
-                origin: rect.origin + Pair(0, usize::MAX),
-                extent: rect.extent,
-            },
+            rect + Pair(1, 0),
+            rect + Pair(0, 1),
+            rect + Pair(usize::MAX, 0),
+            rect + Pair(0, usize::MAX),
         ];
-        for candidate in candidates {
-            if self.in_bounds(candidate) && self.is_clear(candidate) {
-                out.push(candidate);
-            }
+        let mut out = Vec::with_capacity(4);
+        if rect.max_coord().0 < self.extent().0 && self.is_clear(candidates[0]) {
+            out.push(candidates[0]);
+        }
+        if rect.max_coord().1 < self.extent().1 && self.is_clear(candidates[1]) {
+            out.push(candidates[1]);
+        }
+        if rect.origin.0 > 0 && self.is_clear(candidates[2]) {
+            out.push(candidates[2]);
+        }
+        if rect.origin.1 > 0 && self.is_clear(candidates[3]) {
+            out.push(candidates[3]);
         }
         out
     }

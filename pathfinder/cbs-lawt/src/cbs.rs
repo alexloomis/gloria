@@ -163,12 +163,12 @@ impl CBS<'_> {
     }
 
     fn explore(&self) -> Vec<Exploration> {
-        println!("{:?}", self.constraints);
-        println!("{:?}", self.solution);
-        for conflict in &self.conflicts {
-            println!("{:?}", conflict);
-        }
-        println!();
+        //println!("{:?}", self.constraints);
+        //println!("{:?}", self.solution);
+        //for conflict in &self.conflicts {
+        //    println!("{:?}", conflict);
+        //}
+        //println!();
         let mut explorations = Vec::with_capacity(self.conflicts.len());
         for conflict in &self.conflicts {
             let exploration = self.explore_conflict(*conflict);
@@ -335,11 +335,11 @@ fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
             Some(new_node) => new_node,
         };
         let children = expand_node(node.clone());
-        if children.len() == 1 {
-            println!("{:?}", node.constraints);
-            println!("{:?}", children[0].constraints);
-            println!();
-        }
+        //if children.len() == 1 {
+        //    println!("{:?}", node.constraints);
+        //    println!("{:?}", children[0].constraints);
+        //    println!();
+        //}
         for child in children {
             if child.conflicts.is_empty() {
                 return child.solution;

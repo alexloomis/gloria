@@ -33,8 +33,6 @@ impl Pair {
     }
 }
 
-pub const UNIT_SIZE: Pair = Pair(2, 2);
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct CellInfo {
     pub cost: usize,
@@ -46,6 +44,16 @@ pub struct CellInfo {
 pub struct Rect {
     pub origin: Pair,
     pub extent: Pair,
+}
+
+impl ops::Add<Pair> for Rect {
+    type Output = Rect;
+    fn add(self, rhs: Pair) -> Self::Output {
+        Rect {
+            origin: self.origin + rhs,
+            extent: self.extent,
+        }
+    }
 }
 
 impl Rect {

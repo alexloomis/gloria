@@ -133,8 +133,8 @@ impl AStar {
     ) -> AStar {
         let mut out = AStar {
             heuristic: Grid::init(
-                grid.rows().sub(UNIT_SIZE.1) + 1,
-                grid.cols().sub(UNIT_SIZE.0) + 1,
+                grid.rows().sub(unit_extent.1),
+                grid.cols().sub(unit_extent.0),
                 usize::MAX,
             ),
             unit_extent,
