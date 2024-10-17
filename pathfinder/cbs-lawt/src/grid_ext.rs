@@ -6,96 +6,102 @@ use std::ops::Sub;
 #[derive(PartialEq, Eq)]
 pub struct GridExt {
     grid: Grid<CellInfo>,
-    unit_size: Pair,
 }
 
 // Visible: new, cost, neighbors, djikstra
 
 impl GridExt {
-    pub fn new(grid: Grid<CellInfo>, unit_size: Pair) -> GridExt {
-        GridExt { grid, unit_size }
+    pub fn new(grid: Grid<CellInfo>) -> GridExt {
+        GridExt { grid }
     }
 
-    // Effective number of (columns, rows)
+    // Max coordinate
     pub fn extent(&self) -> Pair {
-        (
-            self.grid.rows().sub(self.unit_size.0) + 1,
-            self.grid.cols().sub(self.unit_size.1) + 1,
+        Pair(self.grid.rows().sub(1), self.grid.cols().sub(1))
+    }
+
+    // Effective number of (columns, rows) for units with extent extent
+    pub fn effective_size(&self, extent: Pair) -> Pair {
+        Pair(
+            self.grid.rows().sub(extent.0),
+            self.grid.cols().sub(extent.1),
         )
     }
 
     // Accounts for unit size
-    pub fn in_bounds(&self, cell: Pair) -> bool {
-        cell.0 < self.extent().0 && cell.1 < self.extent().1
+    pub fn in_bounds(&self, rect: Rect) -> bool {
+        rect.max_coord().0 <= self.extent().0 && rect.max_coord().1 <= self.extent().1
     }
 
     fn cell_is_clear(&self, cell: Pair) -> bool {
-        !self.grid[cell].blocked
+        !self.grid[cell.into()].blocked
     }
 
-    fn rect(&self, cell: Pair) -> Rect {
-        Rect {
-            origin: cell,
-            extent: self.unit_size,
-        }
-    }
-
-    pub fn is_clear(&self, cell: Pair) -> bool {
-        let mut clear = true;
-        for tile in self.rect(cell).cells() {
-            clear = clear && self.cell_is_clear(tile)
-        }
-        clear
-    }
-
-    pub fn neighbors(&self, cell: Pair) -> Vec<Pair> {
-        let mut out = Vec::with_capacity(4);
-        let candidates = [
-            (cell.0 + 1, cell.1),
-            (cell.0, cell.1 + 1),
-            (cell.0.wrapping_sub(1), cell.1),
-            (cell.0, cell.1.wrapping_sub(1)),
-        ];
-        for candidate in candidates {
-            if self.in_bounds(candidate) && self.is_clear(candidate) {
-                out.push(candidate);
+    pub fn is_clear(&self, rect: Rect) -> bool {
+        for tile in rect.cells() {
+            if !self.cell_is_clear(tile) {
+                return false;
             }
+        }
+        true
+    }
+
+    pub fn neighbors(&self, rect: Rect) -> Vec<Rect> {
+        let candidates = [
+            rect + Pair(1, 0),
+            rect + Pair(0, 1),
+            rect + Pair(usize::MAX, 0),
+            rect + Pair(0, usize::MAX),
+        ];
+        let mut out = Vec::with_capacity(4);
+        if rect.max_coord().0 < self.extent().0 && self.is_clear(candidates[0]) {
+            out.push(candidates[0]);
+        }
+        if rect.max_coord().1 < self.extent().1 && self.is_clear(candidates[1]) {
+            out.push(candidates[1]);
+        }
+        if rect.origin.0 > 0 && self.is_clear(candidates[2]) {
+            out.push(candidates[2]);
+        }
+        if rect.origin.1 > 0 && self.is_clear(candidates[3]) {
+            out.push(candidates[3]);
         }
         out
     }
 
-    pub fn set_blocked(&mut self, cell: Pair, blocked: bool) {
-        for cell in self.rect(cell).cells() {
-            self.grid[cell].blocked = blocked
+    pub fn set_blocked(&mut self, rect: Rect, blocked: bool) {
+        for cell in rect.cells() {
+            self.grid[cell.into()].blocked = blocked
         }
     }
 
-    pub fn cost(&self, cell: Pair) -> usize {
+    pub fn cost(&self, rect: Rect) -> usize {
         let mut total = 0;
-        for tile in self.rect(cell).cells() {
-            total += self.grid[tile].cost
+        for tile in rect.cells() {
+            total += self.grid[tile.into()].cost
         }
         total
     }
 
-    pub fn djikstra(&self, to: Pair) -> Grid<usize> {
-        let mut open = HashMap::with_capacity(self.extent().0 * self.extent().1);
+    pub fn djikstra(&self, to: Rect) -> Grid<usize> {
+        let size = self.effective_size(to.extent);
+        let mut open = HashMap::with_capacity(size.0 * size.1);
         open.insert(to, 0);
-        let mut closed = Grid::init(self.extent().0, self.extent().1, usize::MAX);
+        let mut closed = Grid::init(size.0, size.1, usize::MAX);
         while !open.is_empty() {
             let min_cell;
-            let current_cost = match open.min_key() {
+            let current_cost = match open.min_value() {
                 Some((key, value)) => {
                     min_cell = key;
                     value
                 }
                 None => break,
             };
-            closed[min_cell] = current_cost;
+            closed[min_cell.origin.into()] = current_cost;
             open.remove(&min_cell);
             for neighbor in self.neighbors(min_cell) {
                 // If the neighbor has not been fully resolved yet
-                if closed[neighbor] == usize::MAX {
+                if closed[neighbor.origin.into()] == usize::MAX {
                     // Cost of self, because the cost is to move *to* self
                     let new_cost = current_cost + self.cost(min_cell);
                     match open.get(&neighbor) {
