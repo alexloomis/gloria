@@ -210,7 +210,7 @@ impl Debug for Constraint {
 }
 
 impl Conflict {
-    pub fn constraints(self) -> (Constraint, Constraint) {
+    pub fn constraints(self) -> [Constraint; 2] {
         let constraint_0 = Constraint {
             uid: self.0.uid,
             location: self.1.location,
@@ -221,6 +221,6 @@ impl Conflict {
             location: self.0.location,
             duration: self.0.duration,
         };
-        (constraint_0, constraint_1)
+        [constraint_0, constraint_1]
     }
 }

@@ -1,7 +1,8 @@
 use crate::astar::AStar;
-use crate::prelude::*;
+use crate::prelude::{Path, *};
 use std::cmp::{max, min};
-use std::collections::{BinaryHeap, HashSet};
+use std::collections::BinaryHeap;
+use std::{path, usize};
 
 struct UnitState {
     uid: Pair,
@@ -140,35 +141,25 @@ impl CBS<'_> {
     }
 
     /// Exploration functions
-    // TODO: 70% sure the bug is somewhere between here and EOF.
+
+    fn explore_constraint(&self, constraint: Constraint) -> Option<Path> {
+        let mut constraints = self.constraints.clone();
+        constraints.push(constraint);
+        self.astar.astar(constraint.uid, &constraints)
+    }
 
     fn explore_conflict(&self, conflict: Conflict) -> Exploration {
         let constraints = Conflict::constraints(conflict);
-        let mut constraints_0 = self.constraints.clone();
-        constraints_0.push(constraints.0);
-        let path_0 = self.astar.astar(constraints.0.uid, &constraints_0);
-        let mut constraints_1 = self.constraints.clone();
-        constraints_1.push(constraints.1);
-        let path_1 = self.astar.astar(constraints.1.uid, &constraints_1);
+        let path_0 = self.explore_constraint(constraints[0]);
+        let path_1 = self.explore_constraint(constraints[1]);
         Exploration {
             conflict,
             constraints,
-            solutions: (path_0, path_1),
+            solutions: [path_0, path_1],
         }
     }
 
     fn explore(&self) -> Vec<Exploration> {
-        println!("Constraints:");
-        println!("{:?}", self.constraints);
-        println!("Solution:");
-        println!("{:?}", self.solution);
-        //for conflict in &self.conflicts {
-        //    println!("{:?}", conflict);
-        //}
-        println!();
-        if self.constraints.len() >= 2 {
-            panic!()
-        }
         let mut explorations = Vec::with_capacity(self.conflicts.len());
         for conflict in &self.conflicts {
             let exploration = self.explore_conflict(*conflict);
@@ -179,7 +170,7 @@ impl CBS<'_> {
 
     fn change_path(&mut self, path: Path) {
         for (idx, old_path) in self.solution.iter().enumerate() {
-            if path[0] == old_path[0] {
+            if path[0].location == old_path[0].location {
                 self.solution[idx] = path;
                 break;
             }
@@ -187,36 +178,40 @@ impl CBS<'_> {
     }
 }
 
+// TODO: 70% sure the bug is somewhere between here and EOF.
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Exploration {
     conflict: Conflict,
-    constraints: (Constraint, Constraint),
-    solutions: (Option<Path>, Option<Path>),
+    constraints: [Constraint; 2],
+    solutions: [Option<Path>; 2],
 }
 
 impl Exploration {
     fn score(&self) -> usize {
-        let mut min_score = match &self.solutions.0 {
-            Some(path) => path.len(),
-            None => usize::MAX,
-        };
-        min_score = match &self.solutions.1 {
-            Some(path) => min(min_score, path.len()),
-            None => min_score,
-        };
-        min_score
+        self.solutions
+            .iter()
+            .map(|solution| {
+                solution
+                    .as_ref()
+                    .map(|path| path.len())
+                    .unwrap_or(usize::MAX)
+            })
+            .min()
+            .unwrap()
     }
 
     fn secondary_score(&self) -> usize {
-        let mut max_score = match &self.solutions.0 {
-            Some(path) => path.len(),
-            None => usize::MAX,
-        };
-        max_score = match &self.solutions.1 {
-            Some(path) => max(max_score, path.len()),
-            None => usize::MAX,
-        };
-        max_score
+        self.solutions
+            .iter()
+            .map(|solution| {
+                solution
+                    .as_ref()
+                    .map(|path| path.len())
+                    .unwrap_or(usize::MAX)
+            })
+            .max()
+            .unwrap()
     }
 
     fn uids(&self) -> (Pair, Pair) {
@@ -243,7 +238,7 @@ impl PartialOrd for Exploration {
 fn prioritize(explorations: Vec<Exploration>) -> Vec<Exploration> {
     let mut out: Vec<Exploration> = Vec::with_capacity(explorations.len());
     for exploration in explorations {
-        if exploration.solutions == (None, None) {
+        if exploration.solutions == [None, None] {
             continue;
         }
         let mut include = true;
@@ -272,7 +267,7 @@ fn prioritize(explorations: Vec<Exploration>) -> Vec<Exploration> {
 fn greedy_choices(explorations: Vec<Exploration>) -> Vec<Exploration> {
     let mut out = Vec::with_capacity(explorations.len());
     let mut seen = Vec::with_capacity(explorations.len() * 2);
-    for exploration in explorations {
+    for exploration in prioritize(explorations) {
         let uids = exploration.uids();
         if !(seen.contains(&uids.0) || seen.contains(&uids.1)) {
             out.push(exploration);
@@ -283,21 +278,23 @@ fn greedy_choices(explorations: Vec<Exploration>) -> Vec<Exploration> {
     out
 }
 
+// TODO: sus
+
+fn update_cbs(mut cbs: CBS, constrait: Constraint, path: Path) -> CBS {
+    cbs.constraints.push(constrait);
+    cbs.change_path(path);
+    cbs.extend_paths();
+    cbs.find_cost();
+    cbs
+}
+
 fn expand_exploration(cbs: CBS, exploration: Exploration) -> Vec<CBS> {
-    let mut out = Vec::with_capacity(2);
-    if let Some(path) = exploration.solutions.0 {
-        let mut child = cbs.clone();
-        child.cost = max(child.cost, path[path.len() - 1].duration.1);
-        child.constraints.push(exploration.constraints.0);
-        child.change_path(path);
-        out.push(child);
-    }
-    if let Some(path) = exploration.solutions.1 {
-        let mut child = cbs;
-        child.cost = max(child.cost, path[path.len() - 1].duration.1);
-        child.constraints.push(exploration.constraints.1);
-        child.change_path(path);
-        out.push(child);
+    let mut out = Vec::with_capacity(exploration.constraints.len());
+    for (idx, solution) in exploration.solutions.into_iter().enumerate() {
+        if let Some(path) = solution {
+            let new = update_cbs(cbs.clone(), exploration.constraints[idx], path);
+            out.push(new);
+        }
     }
     out
 }
@@ -321,7 +318,6 @@ fn expand_explorations(cbs: CBS, explorations: Vec<Exploration>) -> Vec<CBS> {
 
 fn expand_node(cbs: CBS) -> Vec<CBS> {
     let mut explorations = cbs.explore();
-    explorations = prioritize(explorations);
     explorations = greedy_choices(explorations);
     expand_explorations(cbs, explorations)
 }
@@ -335,13 +331,6 @@ fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
             Some(new_node) => new_node,
         };
         let children = expand_node(node.clone());
-        if children.len() == 1 {
-            println!("Old constraints:");
-            println!("{:?}", node.constraints);
-            println!("New constraints:");
-            println!("{:?}", children[0].constraints);
-            println!();
-        }
         for child in children {
             if child.conflicts.is_empty() {
                 return child.solution;

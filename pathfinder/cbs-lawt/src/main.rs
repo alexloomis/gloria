@@ -1,3 +1,4 @@
+// samply record ./path/to/bin to profile
 use cbs_lawt::astar::AStar;
 use cbs_lawt::cbs::solve_mapf;
 use cbs_lawt::prelude::{CellInfo, Pair};
