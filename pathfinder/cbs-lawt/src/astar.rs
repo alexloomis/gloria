@@ -1,8 +1,6 @@
-use crate::grid_ext::GridExt;
+use crate::grid::Grid;
 use crate::prelude::*;
-use grid::Grid;
-use std::collections::BinaryHeap;
-use std::ops::Sub;
+use std::collections::{BinaryHeap, HashMap};
 use std::rc::Rc;
 
 fn filter_constraints(uid: Pair, constraints: &[Constraint]) -> Vec<Constraint> {
@@ -71,7 +69,7 @@ fn reconstruct_path(last: ScoredCell) -> Path {
 
 #[derive(PartialEq, Eq)]
 pub struct AStar {
-    pub grid: GridExt,
+    pub grid: Grid<CellInfo>,
     pub origins: Vec<Pair>,
     pub destinations: Vec<Pair>,
     pub unit_extent: Pair,
@@ -103,9 +101,9 @@ impl AStar {
     fn generate_heuristic(&mut self) {
         for destination in &self.destinations {
             let distances = self.grid.djikstra(destination.extend(self.unit_extent));
-            for ((x, y), cost) in distances.indexed_iter() {
-                if *cost < self.heuristic[(x, y)] {
-                    self.heuristic[(x, y)] = *cost
+            for (pair, cost) in distances.indexed_iter() {
+                if *cost < self.heuristic[pair] {
+                    self.heuristic[pair] = *cost
                 }
             }
         }
@@ -125,29 +123,46 @@ impl AStar {
     //    }
     //}
 
+    pub fn new(
+        origins: Vec<Pair>,
+        destinations: Vec<Pair>,
+        unit_extent: Pair,
+        grid: Grid<CellInfo>,
+    ) -> AStar {
+        AStar {
+            heuristic: Grid::init(grid.effective_extent(unit_extent), usize::MAX),
+            unit_extent,
+            grid,
+            origins,
+            destinations,
+        }
+    }
+
     pub fn init(
         origins: Vec<Pair>,
         destinations: Vec<Pair>,
         unit_extent: Pair,
         grid: Grid<CellInfo>,
     ) -> AStar {
-        let mut out = AStar {
-            heuristic: Grid::init(
-                grid.rows().sub(unit_extent.1),
-                grid.cols().sub(unit_extent.0),
-                usize::MAX,
-            ),
-            unit_extent,
-            grid: GridExt::new(grid),
-            origins,
-            destinations,
-        };
+        let mut out = AStar::new(origins, destinations, unit_extent, grid);
         //out.verify_destination_count();
         //out.verify_cells(&origins);
         //out.verify_cells(&destinations);
         //out.verify_connectivity();
         out.generate_heuristic();
         out
+    }
+
+    // Minimizes makespan, then runs again on other units to reduce sub-problem distances.
+    fn assign_destinations(&mut self) {
+        let mut dest_heuristics = HashMap::with_capacity(self.destinations.len());
+        for destination in self.destinations.clone() {
+            let heuristic = self.grid.djikstra(Rect {
+                origin: destination,
+                extent: self.unit_extent,
+            });
+            dest_heuristics.insert(destination, heuristic);
+        }
     }
 
     fn successors(&self, scored_cell: ScoredCell, constraints: &[Constraint]) -> Vec<ScoredCell> {
@@ -166,7 +181,7 @@ impl AStar {
         for location in neighbors {
             let time = sc.duration.1 + self.grid.cost(location);
             let candidate = ScoredCell {
-                cost: time + self.heuristic[location.origin.into()],
+                cost: time + self.heuristic[location.origin],
                 duration: Pair(sc.duration.1 + 1, time),
                 location,
                 prev: Some(Rc::clone(&sc)),

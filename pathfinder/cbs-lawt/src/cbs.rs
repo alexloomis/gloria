@@ -1,8 +1,6 @@
 use crate::astar::AStar;
 use crate::prelude::{Path, *};
-use std::cmp::{max, min};
 use std::collections::BinaryHeap;
-use std::{path, usize};
 
 struct UnitState {
     uid: Pair,

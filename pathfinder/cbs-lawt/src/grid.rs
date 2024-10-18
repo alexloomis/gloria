@@ -1,31 +1,75 @@
 use crate::prelude::*;
-use grid::Grid;
-use std::collections::HashMap;
-use std::ops::Sub;
+use core::panic;
+use std::{
+    collections::HashMap,
+    ops::{Index, IndexMut, Sub},
+};
 
 #[derive(PartialEq, Eq)]
-pub struct GridExt {
-    grid: Grid<CellInfo>,
+pub struct Grid<T> {
+    data: Vec<T>,
+    extent: Pair,
 }
 
-// Visible: new, cost, neighbors, djikstra
-
-impl GridExt {
-    pub fn new(grid: Grid<CellInfo>) -> GridExt {
-        GridExt { grid }
-    }
-
+impl<T> Grid<T> {
     // Max coordinate
     pub fn extent(&self) -> Pair {
-        Pair(self.grid.rows().sub(1), self.grid.cols().sub(1))
+        self.extent
     }
 
-    // Effective number of (columns, rows) for units with extent extent
+    pub fn size(&self) -> Pair {
+        self.extent + Pair(1, 1)
+    }
+
+    fn usize_to_pair(&self, index: usize) -> Pair {
+        Pair(index % self.size().0, index / self.size().0)
+    }
+
+    // idx.j must be at most extent.j (unchecked)
+    fn pair_to_usize(&self, index: Pair) -> usize {
+        if index.0 > self.extent().0 || index.1 > self.extent().1 {
+            panic!("Index {:?} exceeds extent {:?}!", index, self.extent())
+        }
+        index.0 + index.1 * self.size().0
+    }
+}
+
+impl<T> Index<Pair> for Grid<T> {
+    type Output = T;
+    fn index(&self, index: Pair) -> &Self::Output {
+        &self.data[self.pair_to_usize(index)]
+    }
+}
+
+impl<T> IndexMut<Pair> for Grid<T> {
+    fn index_mut(&mut self, index: Pair) -> &mut Self::Output {
+        let idx = self.pair_to_usize(index);
+        &mut self.data[idx]
+    }
+}
+
+impl<T: Copy> Grid<T> {
+    pub fn init(extent: Pair, value: T) -> Grid<T> {
+        let data = vec![value; (extent.0 + 1) * (extent.1 + 1)];
+        Grid { data, extent }
+    }
+
+    pub fn indexed_iter(&self) -> impl Iterator<Item = (Pair, &T)> {
+        self.data.iter().enumerate().map(move |(idx, i)| {
+            let position = self.usize_to_pair(idx);
+            (position, i)
+        })
+    }
+}
+
+impl Grid<CellInfo> {
+    // Max origin for a unit with extent `extent`
+    pub fn effective_extent(&self, extent: Pair) -> Pair {
+        Pair(self.extent().0.sub(extent.0), self.extent().0.sub(extent.1))
+    }
+
     pub fn effective_size(&self, extent: Pair) -> Pair {
-        Pair(
-            self.grid.rows().sub(extent.0),
-            self.grid.cols().sub(extent.1),
-        )
+        self.effective_extent(extent) + Pair(1, 1)
     }
 
     // Accounts for unit size
@@ -34,7 +78,7 @@ impl GridExt {
     }
 
     fn cell_is_clear(&self, cell: Pair) -> bool {
-        !self.grid[cell.into()].blocked
+        !self[cell].blocked
     }
 
     pub fn is_clear(&self, rect: Rect) -> bool {
@@ -71,14 +115,14 @@ impl GridExt {
 
     pub fn set_blocked(&mut self, rect: Rect, blocked: bool) {
         for cell in rect.cells() {
-            self.grid[cell.into()].blocked = blocked
+            self[cell].blocked = blocked
         }
     }
 
     pub fn cost(&self, rect: Rect) -> usize {
         let mut total = 0;
         for tile in rect.cells() {
-            total += self.grid[tile.into()].cost
+            total += self[tile].cost
         }
         total
     }
@@ -87,7 +131,7 @@ impl GridExt {
         let size = self.effective_size(to.extent);
         let mut open = HashMap::with_capacity(size.0 * size.1);
         open.insert(to, 0);
-        let mut closed = Grid::init(size.0, size.1, usize::MAX);
+        let mut closed = Grid::init(self.effective_extent(to.extent), usize::MAX);
         while !open.is_empty() {
             let min_cell;
             let current_cost = match open.min_value() {
@@ -97,11 +141,11 @@ impl GridExt {
                 }
                 None => break,
             };
-            closed[min_cell.origin.into()] = current_cost;
+            closed[min_cell.origin] = current_cost;
             open.remove(&min_cell);
             for neighbor in self.neighbors(min_cell) {
                 // If the neighbor has not been fully resolved yet
-                if closed[neighbor.origin.into()] == usize::MAX {
+                if closed[neighbor.origin] == usize::MAX {
                     // Cost of self, because the cost is to move *to* self
                     let new_cost = current_cost + self.cost(min_cell);
                     match open.get(&neighbor) {

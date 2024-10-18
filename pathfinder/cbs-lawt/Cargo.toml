@@ -2,12 +2,13 @@
 name = "cbs-lawt"
 version = "0.1.0"
 edition = "2021"
-authors = ["Alex Loomis <atloomis@math.arizona.edu>"]
-description = "A utility to help find reasonable pedal changes."
+authors = ["Alex Loomis <alexandreloomis@gmail.com>"]
+description = "Pathfinding for a game."
 
 [dependencies]
 grid = "0.15.0"
 # coz = "0.1.3"
+rand = "0.8.5"
 
 [profile.release]
 debug = 1
