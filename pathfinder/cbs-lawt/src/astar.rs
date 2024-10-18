@@ -1,7 +1,9 @@
 use crate::grid::Grid;
 use crate::prelude::*;
+use std::cmp::min;
 use std::collections::{BinaryHeap, HashMap};
 use std::rc::Rc;
+use std::usize;
 
 fn filter_constraints(uid: Pair, constraints: &[Constraint]) -> Vec<Constraint> {
     let mut out = Vec::with_capacity(constraints.len());
@@ -153,8 +155,48 @@ impl AStar {
         out
     }
 
-    // Minimizes makespan, then runs again on other units to reduce sub-problem distances.
-    fn assign_destinations(&mut self) {
+    fn find_max_among(grid: &Grid<usize>, xs: &[usize], ys: &[usize]) -> Pair {
+        let mut max_x = xs[0];
+        let mut max_y = ys[0];
+        let mut max_val = grid[Pair(max_x, max_y)];
+        for x in xs {
+            for y in ys {
+                let val = grid[Pair(*x, *y)];
+                if val > max_val {
+                    max_x = *x;
+                    max_y = *y;
+                    max_val = val;
+                }
+            }
+        }
+        Pair(max_x, max_y)
+    }
+
+    fn find_min_along(grid: &Grid<usize>, target: Pair, xs: &[usize], ys: &[usize]) -> Pair {
+        let mut min_x = target.0;
+        let mut min_y = target.1;
+        let mut min_val = grid[target];
+        for x in xs {
+            let val = grid[Pair(*x, target.1)];
+            if val < min_val {
+                min_val = val;
+                min_x = *x;
+                min_y = target.1;
+            }
+        }
+        for y in ys {
+            let val = grid[Pair(target.0, *y)];
+            if val < min_val {
+                min_val = val;
+                min_x = target.0;
+                min_y = *y
+            }
+        }
+        Pair(min_x, min_y)
+    }
+
+    // Tries to minimize makespan
+    pub fn assign_destinations(&mut self) {
         let mut dest_heuristics = HashMap::with_capacity(self.destinations.len());
         for destination in self.destinations.clone() {
             let heuristic = self.grid.djikstra(Rect {
@@ -163,6 +205,30 @@ impl AStar {
             });
             dest_heuristics.insert(destination, heuristic);
         }
+
+        let mut distances = Grid::init(
+            Pair(self.origins.len() - 1, self.destinations.len() - 1),
+            usize::MAX,
+        );
+        for (Pair(origin_idx, dest_idx), value) in distances.indexed_iter_mut() {
+            *value = dest_heuristics[&self.destinations[dest_idx]][self.origins[origin_idx]];
+        }
+
+        let mut unassigned_origins: Vec<usize> = (0..self.origins.len()).collect();
+        let mut unassigned_dests: Vec<usize> = (0..self.destinations.len()).collect();
+        let mut assignments = vec![usize::MAX; self.origins.len()];
+
+        while !unassigned_origins.is_empty() {
+            // Give either the worst origin or the worst destination its best choice
+            let coord = AStar::find_max_among(&distances, &unassigned_origins, &unassigned_dests);
+            let coord =
+                AStar::find_min_along(&distances, coord, &unassigned_origins, &unassigned_dests);
+            assignments[coord.0] = coord.1;
+            unassigned_origins.retain(|origin| *origin != coord.0);
+            unassigned_dests.retain(|destination| *destination != coord.0);
+        }
+
+        // TODO: see if can swap to better assignment, to find local optimum
     }
 
     fn successors(&self, scored_cell: ScoredCell, constraints: &[Constraint]) -> Vec<ScoredCell> {

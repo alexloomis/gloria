@@ -12,7 +12,6 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 name = "cbs-lawt"
 version = "0.1.0"
 dependencies = [
- "grid",
  "rand",
 ]
 
@@ -32,12 +31,6 @@ dependencies = [
  "libc",
  "wasi",
 ]
-
-[[package]]
-name = "grid"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36119f3a540b086b4e436bb2b588cf98a68863470e0e880f4d0842f112a3183a"
 
 [[package]]
 name = "libc"

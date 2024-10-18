@@ -21,8 +21,12 @@ impl<T> Grid<T> {
         self.extent + Pair(1, 1)
     }
 
+    fn usize_to_pair_(extent: Pair, index: usize) -> Pair {
+        Pair(index % (extent.0 + 1), index / (extent.0 + 1))
+    }
+
     fn usize_to_pair(&self, index: usize) -> Pair {
-        Pair(index % self.size().0, index / self.size().0)
+        Grid::<T>::usize_to_pair_(self.extent, index)
     }
 
     // idx.j must be at most extent.j (unchecked)
@@ -57,6 +61,14 @@ impl<T: Copy> Grid<T> {
     pub fn indexed_iter(&self) -> impl Iterator<Item = (Pair, &T)> {
         self.data.iter().enumerate().map(move |(idx, i)| {
             let position = self.usize_to_pair(idx);
+            (position, i)
+        })
+    }
+
+    pub fn indexed_iter_mut(&mut self) -> impl Iterator<Item = (Pair, &mut T)> {
+        let extent = self.extent;
+        self.data.iter_mut().enumerate().map(move |(index, i)| {
+            let position = Grid::<T>::usize_to_pair_(extent, index);
             (position, i)
         })
     }

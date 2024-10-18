@@ -6,7 +6,7 @@ authors = ["Alex Loomis <alexandreloomis@gmail.com>"]
 description = "Pathfinding for a game."
 
 [dependencies]
-grid = "0.15.0"
+# grid = "0.15.0"
 # coz = "0.1.3"
 rand = "0.8.5"
 
