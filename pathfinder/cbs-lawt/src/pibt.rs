@@ -62,15 +62,13 @@ impl PIBT {
         }
     }
 
+    // assignment[i] = j meanse move origin i to index j
     fn update_origins(&mut self, assignments: &[usize]) {
-        println!("Assignments: {:?}", assignments);
         let mut origins = vec![Pair(usize::MAX, usize::MAX); self.origins.len()];
         for (old_idx, new_idx) in assignments.into_iter().enumerate() {
             origins[*new_idx] = self.origins[old_idx]
         }
-        println!("Old origins: {:?}", self.origins);
         self.origins = origins;
-        println!("New origins: {:?}", self.origins);
     }
 
     // Tries to minimize makespan
@@ -96,8 +94,6 @@ impl PIBT {
             unassigned_origins.retain(|origin| *origin != coord.0);
             unassigned_dests.retain(|destination| *destination != coord.1);
         }
-
-        println!("Assignments (original): {:?}", assignments);
         self.update_origins(&assignments);
     }
 

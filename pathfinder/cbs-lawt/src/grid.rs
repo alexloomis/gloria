@@ -3,6 +3,7 @@ use core::panic;
 use std::{
     collections::HashMap,
     ops::{Index, IndexMut, Sub},
+    usize,
 };
 
 #[derive(PartialEq, Eq)]
@@ -174,5 +175,32 @@ impl Grid<CellInfo> {
             }
         }
         closed
+    }
+
+    pub fn floyd_warshall(&self, extent: Pair) -> Grid<usize> {
+        let max_idx = self.pair_to_usize(self.extent());
+        let mut distances = Grid::init(Pair(max_idx, max_idx), usize::MAX);
+        for (origin, _) in self.indexed_iter() {
+            for neighbor in self.neighbors(Rect { origin, extent }) {
+                let idx = Pair(
+                    self.pair_to_usize(origin),
+                    self.pair_to_usize(neighbor.origin),
+                );
+                distances[idx] = self.cost(neighbor);
+            }
+        }
+        for idx in 0..=max_idx {
+            distances[Pair(idx, idx)] = 0
+        }
+        for j in 0..=max_idx {
+            for i in 0..=max_idx {
+                for k in 0..=max_idx {
+                    if distances[Pair(i, k)] > distances[Pair(i, j)] + distances[Pair(j, k)] {
+                        distances[Pair(i, k)] = distances[Pair(i, j)] + distances[Pair(j, k)]
+                    }
+                }
+            }
+        }
+        distances
     }
 }

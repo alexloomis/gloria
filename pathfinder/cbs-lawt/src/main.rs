@@ -39,12 +39,12 @@ fn make_grid(extent: Pair, density: f64, avoid: Vec<Pair>) -> Grid<CellInfo> {
 }
 
 fn test_case() -> AStar {
-    let origins = formation(Pair(1, 4), 2, Pair(3, 2));
-    let destinations = formation(Pair(1, 4), 2, Pair(10, 3));
+    let origins = formation(Pair(4, 25), 2, Pair(3, 2));
+    let destinations = formation(Pair(4, 25), 2, Pair(15, 3));
     let unit_extent = Pair(0, 0);
     let mut clear = origins.clone();
     clear.append(&mut destinations.clone());
-    let grid = make_grid(Pair(100, 75), 0.20, clear);
+    let grid = make_grid(Pair(100, 75), 0.10, clear);
     let astar = AStar::init(origins, destinations, unit_extent, grid);
     draw_with_paths(&astar, Vec::new());
     astar
@@ -108,14 +108,18 @@ fn main() {
     //}
     //draw_with_paths(&test, sln);
 
-    let mut astar = test_case();
+    let mut origins = formation(Pair(4, 25), 2, Pair(3, 2));
     let mut rng = rand::thread_rng();
-    astar.origins.shuffle(&mut rng);
+    origins.shuffle(&mut rng);
+    let destinations = formation(Pair(4, 25), 2, Pair(15, 3));
+    let unit_extent = Pair(0, 0);
+    let mut clear = origins.clone();
+    clear.append(&mut destinations.clone());
     let pibt = PIBT::init(
-        astar.grid,
-        astar.origins,
-        astar.destinations,
-        astar.unit_extent,
+        make_grid(Pair(100, 75), 0.10, clear),
+        origins,
+        destinations,
+        unit_extent,
     );
     for (idx, origin) in pibt.origins.iter().enumerate() {
         println!(
