@@ -164,4 +164,42 @@ impl PIBT {
         pibt.improve_assignments();
         pibt
     }
+
+    pub fn pibt(&self) {
+        let mut units = Vec::with_capacity(self.origins.len());
+        for (idx, origin) in self.origins.iter().enumerate() {
+            let unit = PIBTState {
+                idx,
+                location: Rect {
+                    origin: *origin,
+                    extent: self.unit_extent,
+                },
+                wait: 0,
+                history: Vec::new(),
+            };
+            units.push(unit);
+        }
+        // Units the farthest away should start with the highest priority (front of the list)
+        units.sort_unstable_by_key(|unit| self.heuristics[unit.idx][unit.location.origin]);
+        units.reverse();
+
+        let mut done = false;
+        while !done {
+            done = true;
+            for unit in &units {
+                if unit.location.origin == self.destinations[unit.idx] {
+                    continue;
+                }
+                done = false;
+                // Move unit
+            }
+        }
+    }
+}
+
+struct PIBTState {
+    idx: usize,
+    location: Rect,
+    wait: usize,
+    history: Vec<Pair>,
 }

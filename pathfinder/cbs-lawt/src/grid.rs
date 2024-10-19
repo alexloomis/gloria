@@ -1,7 +1,8 @@
 use crate::prelude::*;
 use core::panic;
 use std::{
-    collections::HashMap,
+    cell,
+    collections::{BinaryHeap, HashMap},
     ops::{Index, IndexMut, Sub},
     usize,
 };
@@ -142,35 +143,31 @@ impl Grid<CellInfo> {
 
     pub fn djikstra(&self, to: Rect) -> Grid<usize> {
         let size = self.effective_size(to.extent);
-        let mut open = HashMap::with_capacity(size.0 * size.1);
-        open.insert(to, 0);
+        let mut open = BinaryHeap::with_capacity(size.0 * size.1);
+        open.push(DjikstraCell {
+            location: to,
+            cost: 0,
+        });
         let mut closed = Grid::init(self.effective_extent(to.extent), usize::MAX);
         while !open.is_empty() {
-            let min_cell;
-            let current_cost = match open.min_value() {
-                Some((key, value)) => {
-                    min_cell = key;
-                    value
-                }
+            let cell = match open.pop() {
+                Some(c) => c,
                 None => break,
             };
-            closed[min_cell.origin] = current_cost;
-            open.remove(&min_cell);
-            for neighbor in self.neighbors(min_cell) {
+            // If the cell has already been fully resolved
+            if closed[cell.location.origin] < usize::MAX {
+                continue;
+            }
+            closed[cell.location.origin] = cell.cost;
+            for neighbor in self.neighbors(cell.location) {
                 // If the neighbor has not been fully resolved yet
                 if closed[neighbor.origin] == usize::MAX {
                     // Cost of self, because the cost is to move *to* self
-                    let new_cost = current_cost + self.cost(min_cell);
-                    match open.get(&neighbor) {
-                        Some(value) => {
-                            if new_cost < *value {
-                                open.insert(neighbor, new_cost);
-                            }
-                        }
-                        None => {
-                            open.insert(neighbor, new_cost);
-                        }
-                    }
+                    let new_cost = cell.cost + self.cost(cell.location);
+                    open.push(DjikstraCell {
+                        location: neighbor,
+                        cost: new_cost,
+                    });
                 }
             }
         }
@@ -202,5 +199,26 @@ impl Grid<CellInfo> {
             }
         }
         distances
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Copy)]
+struct DjikstraCell {
+    cost: usize,
+    location: Rect,
+}
+
+impl Ord for DjikstraCell {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other
+            .cost
+            .cmp(&self.cost)
+            .then_with(|| other.location.cmp(&self.location))
+    }
+}
+
+impl PartialOrd for DjikstraCell {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
