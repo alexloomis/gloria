@@ -1,15 +1,36 @@
+use std::cmp::max;
+use std::rc::Rc;
+use std::usize;
+
 use crate::grid::Grid;
 use crate::prelude::*;
 
 #[derive(PartialEq, Eq)]
-pub struct PIBT {
-    pub grid: Grid<CellInfo>,
-    pub origins: Vec<Pair>,
-    pub destinations: Vec<Pair>,
-    pub unit_extent: Pair,
-    pub heuristics: Vec<Grid<usize>>,
+struct UnitState {
+    idx: usize,
+    location: Rect,
+    // wait == 1 means this turn set wait == 0, next turn move
+    wait: usize,
+    _history: Vec<Pair>,
 }
 
+#[derive(PartialEq, Eq)]
+struct PIBTState {
+    this_queue: Vec<Rc<UnitState>>,
+    next_queue: Vec<Rc<UnitState>>,
+}
+
+#[derive(PartialEq, Eq)]
+pub struct PIBT {
+    grid: Grid<CellInfo>,
+    origins: Vec<Pair>,
+    destinations: Vec<Pair>,
+    unit_extent: Pair,
+    heuristics: Vec<Grid<usize>>,
+    state: PIBTState,
+}
+
+// init
 impl PIBT {
     fn find_max_among(grid: &Grid<usize>, xs: &[usize], ys: &[usize]) -> Pair {
         let mut max_x = xs[0];
@@ -149,6 +170,10 @@ impl PIBT {
             destinations,
             unit_extent,
             heuristics: Vec::new(),
+            state: PIBTState {
+                this_queue: Vec::new(),
+                next_queue: Vec::new(),
+            },
         }
     }
 
@@ -164,25 +189,99 @@ impl PIBT {
         pibt.improve_assignments();
         pibt
     }
+}
 
-    pub fn pibt(&self) {
+enum BlockStatus {
+    Clear,
+    Wait(usize),
+    HighPrio,
+    LowPrio(Vec<Rc<UnitState>>),
+    Stuck,
+}
+
+enum PushStatus {
+    Clear,
+    Wait(usize),
+    HighPrio,
+    Stuck,
+}
+
+fn wait_time(states: &[Rc<UnitState>]) -> usize {
+    states.iter().map(|state| state.wait).max().unwrap_or(0)
+}
+
+// Unit movement
+impl PIBT {
+    fn movement_targets(&self, location: Rect, allow_stationary: bool) -> Vec<Rect> {
+        todo!()
+    }
+
+    fn collisions(&self, location: Rect) -> [Vec<Rc<UnitState>>; 2] {
+        let mut high_prio = Vec::with_capacity(self.state.next_queue.len());
+        let mut low_prio = Vec::with_capacity(self.state.this_queue.len());
+        for unit in &self.state.next_queue {
+            if location.intersects(unit.location) {
+                high_prio.push(unit.clone());
+            }
+        }
+        for unit in &self.state.this_queue {
+            if location.intersects(unit.location) {
+                low_prio.push(unit.clone());
+            }
+        }
+        [high_prio, low_prio]
+    }
+
+    fn block_status(&self, location: Rect) -> BlockStatus {
+        let collisions = self.collisions(location);
+        let max_wait = max(wait_time(&collisions[0]), wait_time(&collisions[1]));
+        if max_wait > 0 {
+            return BlockStatus::Wait(max_wait);
+        }
+        let [high_prio, low_prio] = collisions;
+        if !high_prio.is_empty() {
+            return BlockStatus::HighPrio;
+        } else if !low_prio.is_empty() {
+            return BlockStatus::LowPrio(low_prio);
+        } else {
+            return BlockStatus::Clear;
+        }
+    }
+
+    fn move_unit(&mut self, unit: UnitState) {}
+
+    fn take_action(&mut self, unit: UnitState, target: Rect) {
+        match self.block_status(target) {
+            BlockStatus::Clear => self.move_unit(unit),
+            BlockStatus::Wait(time) => todo!(),
+            BlockStatus::HighPrio => todo!(),
+            BlockStatus::LowPrio(list) => todo!(),
+            BlockStatus::Stuck => todo!(),
+        }
+    }
+
+    fn init_units(&self) -> Vec<UnitState> {
         let mut units = Vec::with_capacity(self.origins.len());
         for (idx, origin) in self.origins.iter().enumerate() {
-            let unit = PIBTState {
+            let unit = UnitState {
                 idx,
                 location: Rect {
                     origin: *origin,
                     extent: self.unit_extent,
                 },
                 wait: 0,
-                history: Vec::new(),
+                _history: Vec::new(),
             };
             units.push(unit);
         }
         // Units the farthest away should start with the highest priority (front of the list)
         units.sort_unstable_by_key(|unit| self.heuristics[unit.idx][unit.location.origin]);
         units.reverse();
+        units
+    }
 
+    pub fn pibt(&self) {
+        let mut units = self.init_units();
         let mut done = false;
         while !done {
             done = true;
@@ -195,11 +294,4 @@ impl PIBT {
             }
         }
     }
-}
-
-struct PIBTState {
-    idx: usize,
-    location: Rect,
-    wait: usize,
-    history: Vec<Pair>,
 }
