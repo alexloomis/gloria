@@ -1,6 +1,7 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
 use std::cmp::max;
 use std::rc::Rc;
-use std::usize;
 
 use crate::grid::Grid;
 use crate::prelude::*;
@@ -86,7 +87,7 @@ impl PIBT {
     // assignment[i] = j meanse move origin i to index j
     fn update_origins(&mut self, assignments: &[usize]) {
         let mut origins = vec![Pair(usize::MAX, usize::MAX); self.origins.len()];
-        for (old_idx, new_idx) in assignments.into_iter().enumerate() {
+        for (old_idx, new_idx) in assignments.iter().enumerate() {
             origins[*new_idx] = self.origins[old_idx]
         }
         self.origins = origins;
@@ -240,11 +241,11 @@ impl PIBT {
         }
         let [high_prio, low_prio] = collisions;
         if !high_prio.is_empty() {
-            return BlockStatus::HighPrio;
+            BlockStatus::HighPrio
         } else if !low_prio.is_empty() {
-            return BlockStatus::LowPrio(low_prio);
+            BlockStatus::LowPrio(low_prio)
         } else {
-            return BlockStatus::Clear;
+            BlockStatus::Clear
         }
     }
 
@@ -281,7 +282,7 @@ impl PIBT {
     }
 
     pub fn pibt(&self) {
-        let mut units = self.init_units();
+        let units = self.init_units();
         let mut done = false;
         while !done {
             done = true;

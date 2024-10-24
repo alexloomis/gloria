@@ -1,53 +1,81 @@
+use crate::constraint::*;
 use crate::grid::Grid;
 use crate::prelude::*;
-use std::cmp::min;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::BinaryHeap;
+use std::fmt::Debug;
 use std::rc::Rc;
 use std::usize;
 
-fn filter_constraints(uid: Pair, constraints: &[Constraint]) -> Vec<Constraint> {
-    let mut out = Vec::with_capacity(constraints.len());
-    for constraint in constraints {
-        if constraint.uid == uid {
-            out.push(*constraint);
-        }
-    }
-    out
+#[derive(Clone)]
+pub struct ScoredCell {
+    // Cost including heuristic, what time do we think we will arrive?
+    pub unit: UnitState,
+    pub cost: usize,
+    pub prev: Option<Rc<ScoredCell>>,
 }
 
-// We assume the constraints have already been filtered by unit
-fn satisfies_constraints(scored_cell: &ScoredCell, constraints: &[Constraint]) -> bool {
-    for constraint in constraints {
-        let relevant_cell = constraint.location.intersects(scored_cell.location);
-        let relevant_time =
-        // We haven't left before the constraint begins
-        constraint.duration.0 <= scored_cell.duration.1
-        &&
-        // We didn't arrive after the constraint ended
-        scored_cell.duration.0 <= constraint.duration.1;
-        if relevant_cell && relevant_time {
-            return false;
-        }
+impl ScoredCell {
+    fn uid(&self) -> Pair {
+        self.unit.uid
     }
-    true
+
+    fn location(&self) -> Rect {
+        self.unit.location
+    }
+
+    fn duration(&self) -> Pair {
+        self.unit.duration
+    }
 }
 
+impl PartialEq for ScoredCell {
+    fn eq(&self, other: &Self) -> bool {
+        self.location() == other.location() && self.duration() == other.duration()
+    }
+}
+
+impl Eq for ScoredCell {}
+
+// Lowest cost has highest priority, then earliest departure, then earliest arrival, then we don't
+// really care, so we just do by cell then by prev.
+impl Ord for ScoredCell {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other
+            .cost
+            .cmp(&self.cost)
+            .then_with(|| other.duration().1.cmp(&self.duration().1))
+            .then_with(|| other.duration().0.cmp(&self.duration().0))
+            .then_with(|| other.location().cmp(&self.location()))
+            .then_with(|| other.prev.cmp(&self.prev))
+    }
+}
+
+impl PartialOrd for ScoredCell {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Debug for ScoredCell {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "({}, {}) × ({}, {})",
+            self.location().origin.0,
+            self.location().origin.1,
+            self.duration().0,
+            self.duration().1
+        )
+    }
+}
+
+// TODO: Can this be made more restrictive?
 fn open_allows_candidate(candidate: &ScoredCell, open: &BinaryHeap<ScoredCell>) -> bool {
     for cell in open {
         // If candidate is cheaper than all remaining cells, we want to check this cell
         if candidate.cost < cell.cost {
             break;
-        } else if cell.location == candidate.location && cell.duration == candidate.duration {
-            return false;
-        }
-    }
-    true
-}
-
-fn may_stop(candidate: &ScoredCell, constraints: &[Constraint]) -> bool {
-    for constraint in constraints {
-        if constraint.location.intersects(candidate.location)
-            && candidate.duration.0 <= constraint.duration.1
+        } else if cell.location() == candidate.location() && cell.duration() == candidate.duration()
         {
             return false;
         }
@@ -56,14 +84,14 @@ fn may_stop(candidate: &ScoredCell, constraints: &[Constraint]) -> bool {
 }
 
 fn reconstruct_path(last: ScoredCell) -> Path {
-    let mut path = Vec::with_capacity(last.duration.1 + 1);
-    path.push(last.clone());
-    let mut prev = last;
-    while let Some(scored_cell) = prev.prev {
-        if prev.location != scored_cell.location {
-            path.push(Rc::unwrap_or_clone(scored_cell.clone()));
+    let mut path = Vec::with_capacity(last.duration().1 + 1);
+    path.push(last.unit);
+    let mut prev = Rc::new(last);
+    while let Some(scored_cell) = &prev.prev {
+        if prev.location() != scored_cell.location() {
+            path.push(scored_cell.unit);
         }
-        prev = Rc::unwrap_or_clone(scored_cell.clone());
+        prev = scored_cell.clone();
     }
     path.reverse();
     path
@@ -156,27 +184,35 @@ impl AStar {
     }
 
     fn successors(&self, scored_cell: ScoredCell, constraints: &[Constraint]) -> Vec<ScoredCell> {
-        let neighbors = self.grid.neighbors(scored_cell.location);
+        let neighbors = self.grid.neighbors(scored_cell.location());
         let mut succ = Vec::with_capacity(neighbors.len() + 1);
+        let unit = UnitState {
+            uid: scored_cell.uid(),
+            location: scored_cell.location(),
+            duration: Pair(scored_cell.duration().0, scored_cell.duration().1 + 1),
+        };
         let wait = ScoredCell {
             cost: scored_cell.cost + 1,
-            duration: Pair(scored_cell.duration.0, scored_cell.duration.1 + 1),
-            location: scored_cell.location,
+            unit,
             prev: scored_cell.prev.clone(),
         };
-        if satisfies_constraints(&wait, constraints) {
+        if satisfies_constraints(wait.unit, constraints) {
             succ.push(wait);
         }
         let sc = Rc::new(scored_cell);
         for location in neighbors {
-            let time = sc.duration.1 + self.grid.cost(location);
+            let time = sc.duration().1 + self.grid.cost(location);
+            let unit = UnitState {
+                uid: sc.uid(),
+                location,
+                duration: Pair(sc.duration().1 + 1, time),
+            };
             let candidate = ScoredCell {
                 cost: time + self.heuristic[location.origin],
-                duration: Pair(sc.duration.1 + 1, time),
-                location,
+                unit,
                 prev: Some(Rc::clone(&sc)),
             };
-            if satisfies_constraints(&candidate, constraints) {
+            if satisfies_constraints(candidate.unit, constraints) {
                 succ.push(candidate);
             }
         }
@@ -184,13 +220,17 @@ impl AStar {
     }
 
     pub fn astar(&self, start: Pair, constraints: &[Constraint]) -> Option<Path> {
-        let my_constraints = filter_constraints(start, constraints);
+        let initial = UnitState {
+            uid: start,
+            location: start.extend(self.unit_extent),
+            duration: Pair(0, 0),
+        };
+        let my_constraints = adapt_constraints(initial, constraints);
         let Pair(x_extent, y_extent) = self.grid.effective_size(self.unit_extent);
         let mut open = BinaryHeap::with_capacity(x_extent * y_extent);
         open.push(ScoredCell {
             cost: 0,
-            duration: Pair(0, 0),
-            location: start.extend(self.unit_extent),
+            unit: initial,
             prev: None,
         });
 
@@ -203,8 +243,8 @@ impl AStar {
             };
             for successor in self.successors(current, &my_constraints) {
                 if open_allows_candidate(&successor, &open) {
-                    if self.destinations.contains(&successor.location.origin)
-                        && may_stop(&successor, &my_constraints)
+                    if self.destinations.contains(&successor.location().origin)
+                        && may_stop(successor.unit, &my_constraints)
                     {
                         let path = reconstruct_path(successor);
                         return Some(path);

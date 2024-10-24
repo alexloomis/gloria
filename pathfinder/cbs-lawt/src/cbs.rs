@@ -1,8 +1,9 @@
 use crate::astar::AStar;
-use crate::prelude::{Path, *};
+use crate::constraint::*;
+use crate::prelude::*;
 use std::collections::BinaryHeap;
 
-struct UnitState {
+struct InternalStateData {
     uid: Pair,
     path_idx: usize,
     location: Rect,
@@ -89,25 +90,11 @@ impl CBS<'_> {
         self.cost = path[path.len() - 1].duration.1;
     }
 
-    fn to_conflict(state_i: &UnitState, state_j: &UnitState) -> Conflict {
-        let cii = ConflictInfo {
-            uid: state_i.uid,
-            location: state_i.location,
-            duration: state_i.duration,
-        };
-        let cij = ConflictInfo {
-            uid: state_j.uid,
-            location: state_j.location,
-            duration: state_j.duration,
-        };
-        Conflict(cii, cij)
-    }
-
     fn find_conflicts(&mut self) {
         let mut state = Vec::with_capacity(self.solution.len());
         let end_time = self.cost;
         for path in &self.solution {
-            state.push(UnitState {
+            state.push(InternalStateData {
                 uid: path[0].location.origin,
                 path_idx: 0,
                 location: path[0].location,
@@ -131,7 +118,17 @@ impl CBS<'_> {
                     let intersects = state[i].location.intersects(state[j].location);
                     let includes_moved = *i_moved || *j_moved;
                     if intersects && includes_moved {
-                        self.conflicts.push(CBS::to_conflict(&state[i], &state[j]));
+                        let state_i = UnitState {
+                            uid: state[i].uid,
+                            location: state[i].location,
+                            duration: state[i].duration,
+                        };
+                        let state_j = UnitState {
+                            uid: state[j].uid,
+                            location: state[j].location,
+                            duration: state[j].duration,
+                        };
+                        self.conflicts.push(Conflict(state_i, state_j));
                     }
                 }
             }
@@ -143,7 +140,7 @@ impl CBS<'_> {
     fn explore_constraint(&self, constraint: Constraint) -> Option<Path> {
         let mut constraints = self.constraints.clone();
         constraints.push(constraint);
-        self.astar.astar(constraint.uid, &constraints)
+        self.astar.astar(constraint.uid(), &constraints)
     }
 
     fn explore_conflict(&self, conflict: Conflict) -> Exploration {
@@ -175,8 +172,6 @@ impl CBS<'_> {
         }
     }
 }
-
-// TODO: 70% sure the bug is somewhere between here and EOF.
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Exploration {
@@ -275,8 +270,6 @@ fn greedy_choices(explorations: Vec<Exploration>) -> Vec<Exploration> {
     }
     out
 }
-
-// TODO: sus
 
 fn update_cbs(mut cbs: CBS, constrait: Constraint, path: Path) -> CBS {
     cbs.constraints.push(constrait);

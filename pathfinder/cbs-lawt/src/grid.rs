@@ -1,13 +1,13 @@
 use crate::prelude::*;
 use core::panic;
 use std::{
-    cell,
-    collections::{BinaryHeap, HashMap},
+    cmp::min,
+    collections::BinaryHeap,
     ops::{Index, IndexMut, Sub},
     usize,
 };
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct Grid<T> {
     data: Vec<T>,
     extent: Pair,
@@ -38,6 +38,31 @@ impl<T> Grid<T> {
         }
         index.0 + index.1 * self.size().0
     }
+
+    pub unsafe fn get_unchecked(&self, index: Pair) -> &T {
+        self.data.get_unchecked(self.pair_to_usize(index))
+    }
+
+    pub fn indexed_iter(&self) -> impl Iterator<Item = (Pair, &T)> {
+        self.data.iter().enumerate().map(move |(idx, i)| {
+            let position = self.usize_to_pair(idx);
+            (position, i)
+        })
+    }
+
+    pub fn indicies(&self) -> Vec<Pair> {
+        (0..self.data.len())
+            .map(|index| self.usize_to_pair(index))
+            .collect()
+    }
+
+    pub fn indexed_iter_mut(&mut self) -> impl Iterator<Item = (Pair, &mut T)> {
+        let extent = self.extent;
+        self.data.iter_mut().enumerate().map(move |(index, i)| {
+            let position = Grid::<T>::usize_to_pair_(extent, index);
+            (position, i)
+        })
+    }
 }
 
 impl<T> Index<Pair> for Grid<T> {
@@ -54,25 +79,21 @@ impl<T> IndexMut<Pair> for Grid<T> {
     }
 }
 
+impl<T: Clone> Grid<T> {
+    pub fn init_clone(extent: Pair, value: T) -> Grid<T> {
+        let length = (extent.0 + 1) * (extent.1 + 1);
+        let mut data = Vec::with_capacity(length);
+        for _ in 0..length {
+            data.push(value.clone());
+        }
+        Grid { data, extent }
+    }
+}
+
 impl<T: Copy> Grid<T> {
     pub fn init(extent: Pair, value: T) -> Grid<T> {
         let data = vec![value; (extent.0 + 1) * (extent.1 + 1)];
         Grid { data, extent }
-    }
-
-    pub fn indexed_iter(&self) -> impl Iterator<Item = (Pair, &T)> {
-        self.data.iter().enumerate().map(move |(idx, i)| {
-            let position = self.usize_to_pair(idx);
-            (position, i)
-        })
-    }
-
-    pub fn indexed_iter_mut(&mut self) -> impl Iterator<Item = (Pair, &mut T)> {
-        let extent = self.extent;
-        self.data.iter_mut().enumerate().map(move |(index, i)| {
-            let position = Grid::<T>::usize_to_pair_(extent, index);
-            (position, i)
-        })
     }
 }
 
@@ -149,6 +170,7 @@ impl Grid<CellInfo> {
             cost: 0,
         });
         let mut closed = Grid::init(self.effective_extent(to.extent), usize::MAX);
+
         while !open.is_empty() {
             let cell = match open.pop() {
                 Some(c) => c,
@@ -162,7 +184,6 @@ impl Grid<CellInfo> {
             for neighbor in self.neighbors(cell.location) {
                 // If the neighbor has not been fully resolved yet
                 if closed[neighbor.origin] == usize::MAX {
-                    // Cost of self, because the cost is to move *to* self
                     let new_cost = cell.cost + self.cost(cell.location);
                     open.push(DjikstraCell {
                         location: neighbor,
@@ -174,11 +195,87 @@ impl Grid<CellInfo> {
         closed
     }
 
-    pub fn floyd_warshall(&self, extent: Pair) -> Grid<usize> {
+    fn prefilled_djikstra(&self, from: Rect, data: &mut Grid<Option<usize>>) {
+        let size = self.effective_size(from.extent);
+        let mut open = BinaryHeap::with_capacity(size.0 * size.1);
+        open.push(DjikstraCell {
+            location: from,
+            cost: 0,
+        });
+        let skip_before = self.pair_to_usize(from.origin);
+
+        while !open.is_empty() {
+            let cell = match open.pop() {
+                Some(c) => c,
+                None => break,
+            };
+            // If the cell has already been fully resolved
+            if data[cell.location.origin].is_some() {
+                continue;
+            }
+            data[cell.location.origin] = Some(cell.cost);
+
+            for neighbor in self.neighbors(cell.location) {
+                if self.pair_to_usize(neighbor.origin) < skip_before {
+                    continue;
+                }
+                // If the neighbor has not been fully resolved yet
+                if data[neighbor.origin].is_none() {
+                    let new_cost = cell.cost + self.cost(neighbor);
+                    open.push(DjikstraCell {
+                        location: neighbor,
+                        cost: new_cost,
+                    });
+                }
+            }
+        }
+    }
+
+    // c_dist(x,y) = dist(x,y) + cost(x) - cost(y) = dist(y,x)
+    fn c_distance(
+        &self,
+        loc_0: Rect,
+        loc_1: Rect,
+        distances: &Grid<Grid<Option<usize>>>,
+    ) -> Option<usize> {
+        if let Some(dist) = distances[loc_0.origin][loc_1.origin] {
+            let c_dist = dist + self.cost(loc_0) - self.cost(loc_1);
+            Some(c_dist)
+        } else {
+            None
+        }
+    }
+
+    // Outer grid is indexed by FROM, inner by TO, value is distance.
+    pub fn all_distances(&self, unit_extent: Pair) -> Grid<Grid<Option<usize>>> {
+        let effective_extent = self.effective_extent(unit_extent);
+        let inner = Grid::init(effective_extent, None);
+        let mut distances = Grid::init_clone(effective_extent, inner);
+
+        for cell in distances.indicies() {
+            // Fill in all distances from `cell`
+            self.prefilled_djikstra(cell.extend(unit_extent), &mut distances[cell]);
+            // Use that information to fill out distances to `cell`
+            let cell_idx = distances.pair_to_usize(cell);
+            for from in distances.indicies().iter().skip(cell_idx + 1) {
+                distances[*from][cell] = self.c_distance(
+                    from.extend(unit_extent),
+                    cell.extend(unit_extent),
+                    &distances,
+                )
+            }
+        }
+        distances
+    }
+
+    pub fn floyd_warshall(&self, unit_extent: Pair) -> Grid<usize> {
         let max_idx = self.pair_to_usize(self.extent());
         let mut distances = Grid::init(Pair(max_idx, max_idx), usize::MAX);
         for (origin, _) in self.indexed_iter() {
-            for neighbor in self.neighbors(Rect { origin, extent }) {
+            for neighbor in self.neighbors(Rect {
+                origin,
+                extent: unit_extent,
+            }) {
                 let idx = Pair(
                     self.pair_to_usize(origin),
                     self.pair_to_usize(neighbor.origin),
@@ -191,10 +288,17 @@ impl Grid<CellInfo> {
         }
         for j in 0..=max_idx {
             for i in 0..=max_idx {
-                for k in 0..=max_idx {
-                    if distances[Pair(i, k)] > distances[Pair(i, j)] + distances[Pair(j, k)] {
-                        distances[Pair(i, k)] = distances[Pair(i, j)] + distances[Pair(j, k)]
-                    }
+                //if i == j {
+                //    continue;
+                //}
+                let d_ij = unsafe { *distances.get_unchecked(Pair(i, j)) };
+                for k in 0..i {
+                    //if j == k {
+                    //    continue;
+                    //}
+                    let d_ik = unsafe { *distances.get_unchecked(Pair(i, k)) };
+                    let d_jk = unsafe { *distances.get_unchecked(Pair(j, k)) };
+                    distances[Pair(i, k)] = min(d_ik, d_ij + d_jk);
                 }
             }
         }

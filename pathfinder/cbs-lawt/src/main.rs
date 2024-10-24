@@ -2,9 +2,7 @@
 use cbs_lawt::astar::AStar;
 use cbs_lawt::cbs::solve_mapf;
 use cbs_lawt::grid::Grid;
-use cbs_lawt::pibt::PIBT;
 use cbs_lawt::prelude::{CellInfo, Pair, Path};
-use rand::seq::SliceRandom;
 use rand::Rng;
 
 fn formation(size: Pair, spread: usize, offset: Pair) -> Vec<Pair> {
@@ -44,7 +42,7 @@ fn test_case() -> AStar {
     let unit_extent = Pair(0, 0);
     let mut clear = origins.clone();
     clear.append(&mut destinations.clone());
-    let grid = make_grid(Pair(100, 75), 0.10, clear);
+    let grid = make_grid(Pair(35, 35), 0.10, clear);
     let astar = AStar::init(origins, destinations, unit_extent, grid);
     draw_with_paths(&astar, Vec::new());
     astar
@@ -98,33 +96,15 @@ fn main() {
     //    AStar::init(origins.to_vec(), destinations.to_vec(), Pair(1, 1), grid);
 
     let test = test_case();
-    let sln = solve_mapf(&test);
-    for (i, path) in sln.iter().enumerate() {
-        println!("Solution {}:", i);
-        for j in path {
-            println!("Stayed at {:?} for {:?}", j.location, j.duration);
-        }
-        println!()
-    }
-    draw_with_paths(&test, sln);
+    let _ = test.grid.all_distances(Pair(0, 0));
 
-    //let mut origins = formation(Pair(4, 25), 2, Pair(3, 2));
-    //let mut rng = rand::thread_rng();
-    //origins.shuffle(&mut rng);
-    //let destinations = formation(Pair(4, 25), 2, Pair(15, 3));
-    //let unit_extent = Pair(0, 0);
-    //let mut clear = origins.clone();
-    //clear.append(&mut destinations.clone());
-    //let pibt = PIBT::init(
-    //    make_grid(Pair(100, 75), 0.10, clear),
-    //    origins,
-    //    destinations,
-    //    unit_extent,
-    //);
-    //for (idx, origin) in pibt.origins.iter().enumerate() {
-    //    println!(
-    //        "Unit at {:?} targeting {:?}.",
-    //        origin, pibt.destinations[idx]
-    //    );
+    //let sln = solve_mapf(&test);
+    //for (i, path) in sln.iter().enumerate() {
+    //    println!("Solution {}:", i);
+    //    for j in path {
+    //        println!("Stayed at {:?} for {:?}", j.location, j.duration);
+    //    }
+    //    println!()
     //}
+    //draw_with_paths(&test, sln);
 }
