@@ -1,6 +1,6 @@
 use crate::grid::Grid;
 use crate::prelude::*;
-use std::{collections::BinaryHeap, ops::Sub};
+use std::{collections::BinaryHeap, ops::Sub, usize};
 
 pub struct Terrain {
     base_costs: Grid<Option<usize>>,
@@ -47,6 +47,10 @@ impl Terrain {
         cell.0 <= self.extent().0 && cell.1 <= self.extent().1
     }
 
+    pub fn is_cell_blocked(&self, cell: Pair) -> bool {
+        self.base_costs[cell].is_none()
+    }
+
     fn compute_cost(&self, rect: Rect) -> Option<usize> {
         let mut total = Some(0);
         for cell in rect.cells() {
@@ -70,6 +74,10 @@ impl Terrain {
 
     pub fn is_clear(&self, cell: Pair) -> bool {
         self.costs[cell].is_some()
+    }
+
+    pub fn is_blocked(&self, cell: Pair) -> bool {
+        !self.is_clear(cell)
     }
 
     pub fn neighbors(&self, cell: Pair) -> Vec<Pair> {

@@ -1,3 +1,4 @@
+use cbs_lawt::astar::AStar;
 // samply record ./path/to/bin to profile
 //use cbs_lawt::astar::AStar;
 //use cbs_lawt::cbs::solve_mapf;
@@ -34,53 +35,46 @@ fn make_grid(extent: Pair, density: f64, avoid: Vec<Pair>) -> Grid<Option<usize>
 fn test_terrain() -> Terrain {
     let origins = formation(Pair(1, 5), 2, Pair(3, 2));
     let destinations = formation(Pair(1, 5), 2, Pair(15, 3));
-    let unit_extent = Pair(0, 0);
+    let unit_extent = Pair(1, 1);
     let mut clear = origins.clone();
     clear.append(&mut destinations.clone());
-    let grid = make_grid(Pair(50, 50), 0.10, clear);
+    let grid = make_grid(Pair(50, 50), 0.05, clear);
     Terrain::init(grid, unit_extent)
 }
 
-//fn test_case() -> AStar {
-//    let origins = formation(Pair(1, 5), 2, Pair(3, 2));
-//    let destinations = formation(Pair(1, 5), 2, Pair(15, 3));
-//    let unit_extent = Pair(0, 0);
-//    let mut clear = origins.clone();
-//    clear.append(&mut destinations.clone());
-//    let grid = make_grid(Pair(35, 35), 0.10, clear);
-//    let astar = AStar::init(origins, destinations, unit_extent, grid);
-//    draw_with_paths(&astar, Vec::new());
-//    astar
-//}
+fn test_astar() -> AStar {
+    let destinations = formation(Pair(1, 5), 2, Pair(15, 3));
+    AStar::init(test_terrain(), destinations)
+}
 
-//fn draw_with_paths(astar: &AStar, paths: Vec<Path>) {
-//    let mut path_cells = Vec::new();
-//    for path in paths {
-//        for sc in path {
-//            path_cells.push(sc.location.origin);
-//        }
-//    }
-//
-//    for j in 0..=astar.grid.extent().1 {
-//        for i in 0..=astar.grid.extent().0 {
-//            let coord = Pair(i, j);
-//            let mut char = " ";
-//            if astar.grid[coord].blocked {
-//                char = "x"
-//            } else if astar.origins.contains(&coord) {
-//                char = "%"
-//            } else if astar.destinations.contains(&coord) {
-//                char = "$"
-//            } else if path_cells.contains(&coord) {
-//                char = "*"
-//            }
-//            print!("{:1}", char);
-//            if i == astar.grid.extent().0 {
-//                println!()
-//            }
-//        }
-//    }
-//}
+fn draw_with_paths(astar: &AStar, paths: Vec<Path>) {
+    let mut path_cells = Vec::new();
+    for path in paths {
+        for sc in path {
+            for cell in sc.location.cells() {
+                path_cells.push(cell);
+            }
+        }
+    }
+
+    for j in 0..=astar.terrain.extent().1 {
+        for i in 0..=astar.terrain.extent().0 {
+            let coord = Pair(i, j);
+            let mut char = " ";
+            if astar.terrain.is_cell_blocked(coord) {
+                char = "×"
+            } else if astar.destinations.contains(&coord) {
+                char = "$"
+            } else if path_cells.contains(&coord) {
+                char = "*"
+            }
+            print!("{:1}", char);
+            if i == astar.terrain.extent().0 {
+                println!()
+            }
+        }
+    }
+}
 
 fn main() {
     //let origins: [Pair; 2] = [Pair(0, 0), Pair(3, 0)];
@@ -100,8 +94,41 @@ fn main() {
     //let baby_example: AStar =
     //    AStar::init(origins.to_vec(), destinations.to_vec(), Pair(1, 1), grid);
 
-    let terrain = test_terrain();
-    println!("{:?}", terrain.distances()[Pair(5, 3)][Pair(17, 23)]);
+    let astar = test_astar();
+    for _ in 0..100 {
+        let mut rng = rand::thread_rng();
+        let start_cell = Pair(rng.gen_range(10..40), rng.gen_range(10..40));
+        let end_cell = if rng.gen_bool(0.5) {
+            Some(Pair(rng.gen_range(10..40), rng.gen_range(10..40)))
+        } else {
+            None
+        };
+        let start_time = rng.gen_range(0..10);
+        let end_time = if rng.gen_bool(0.5) {
+            Some(start_time + rng.gen_range(50..100))
+        } else {
+            None
+        };
+        let uid = start_cell;
+        let constraints = Vec::new();
+        println!("Searching for path from {start_cell:?} to {end_cell:?}");
+        println!("Path should span from t = {start_time} to {end_time:?}");
+        let path = astar.astar(
+            uid,
+            start_cell,
+            start_time,
+            end_cell,
+            end_time,
+            &constraints,
+        );
+        match path {
+            None => println!("Path not found"),
+            Some(p) => {
+                println!("Path found:");
+                draw_with_paths(&astar, vec![p]);
+            }
+        }
+    }
 
     //let sln = solve_mapf(&test);
     //for (i, path) in sln.iter().enumerate() {

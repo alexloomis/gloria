@@ -74,10 +74,8 @@ impl Debug for ScoredCell {
 fn open_allows_candidate(candidate: &ScoredCell, open: &BinaryHeap<ScoredCell>) -> bool {
     let already_as_good = open
         .iter()
-        .take_while(|cell| candidate.cost <= cell.cost)
-        .any(|cell| {
-            cell.location() == candidate.location() // && cell.duration().1 == candidate.duration().1
-        });
+        .filter(|cell| candidate.cost <= cell.cost)
+        .any(|cell| cell.location() == candidate.location());
     !already_as_good
 }
 
@@ -189,7 +187,7 @@ impl AStar {
             None => self.destinations.contains(&unit.location.origin),
         };
         let good_time = match end_time {
-            Some(time) => unit.duration.1 >= time,
+            Some(time) => unit.duration.1 >= time || may_stop(unit, constraints),
             None => may_stop(unit, constraints),
         };
         good_cell && good_time
@@ -197,7 +195,7 @@ impl AStar {
 
     fn satisfies_cutoff(scored_cell: &ScoredCell, end_time: Option<usize>) -> bool {
         match end_time {
-            Some(time) => scored_cell.unit.duration.1 < time,
+            Some(time) => scored_cell.cost <= time,
             None => true,
         }
     }
@@ -221,6 +219,18 @@ impl AStar {
             Some(cell) => &self.terrain.distances()[cell],
             None => &self.heuristic,
         };
+
+        // Are we too far away?
+        match heuristic[start_cell] {
+            None => return None,
+            Some(estimate) => {
+                if let Some(time) = end_time {
+                    if start_time + estimate > time {
+                        return None;
+                    }
+                }
+            }
+        }
 
         let Pair(x_extent, y_extent) = self.terrain.extent();
         let mut open = BinaryHeap::with_capacity(x_extent * y_extent);
