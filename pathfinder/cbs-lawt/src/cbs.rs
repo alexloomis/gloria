@@ -2,6 +2,7 @@ use crate::astar::AStar;
 use crate::constraint::*;
 use crate::prelude::*;
 use std::collections::BinaryHeap;
+use std::ptr::eq as ptr_eq;
 
 struct InternalStateData {
     uid: Pair,
@@ -10,14 +11,24 @@ struct InternalStateData {
     duration: Pair,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub struct CBS<'a> {
-    pub astar: &'a AStar,
-    pub constraints: Vec<Constraint>,
-    pub solution: Vec<Path>,
-    pub cost: usize,
-    pub conflicts: Vec<Conflict>,
+    astar: &'a AStar,
+    constraints: Vec<Constraint>,
+    solution: Vec<Path>,
+    cost: usize,
+    conflicts: Vec<Conflict>,
 }
+
+impl PartialEq for CBS<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.cost == other.cost
+            && self.constraints == other.constraints
+            && ptr_eq(self.astar, other.astar)
+    }
+}
+
+impl Eq for CBS<'_> {}
 
 // Min-heap, low cost first with ties broken by low numbers of conflicts, then constraints
 impl Ord for CBS<'_> {
@@ -27,7 +38,7 @@ impl Ord for CBS<'_> {
             .cmp(&self.cost)
             .then_with(|| other.conflicts.len().cmp(&self.conflicts.len()))
             .then_with(|| other.constraints.len().cmp(&self.constraints.len()))
-            .then_with(|| other.solution.cmp(&self.solution))
+            .then_with(|| other.constraints.cmp(&self.constraints))
     }
 }
 
@@ -39,34 +50,41 @@ impl PartialOrd for CBS<'_> {
 
 impl CBS<'_> {
     /// init() functions
-
     fn new(astar: &AStar) -> CBS {
         CBS {
             astar,
             constraints: Vec::new(),
-            solution: Vec::with_capacity(astar.origins.len()),
+            solution: Vec::new(),
             cost: 0,
             conflicts: Vec::new(),
         }
     }
 
-    pub fn init(astar: &AStar) -> CBS {
+    pub fn init<'a, 'b>(astar: &'a AStar, origins: &'b [Pair]) -> CBS<'a> {
         let mut cbs = CBS::new(astar);
-        cbs.find_paths();
+        cbs.init_paths(origins);
         cbs.extend_paths();
         cbs.find_cost();
         cbs.find_conflicts();
         cbs
     }
 
-    fn find_paths(&mut self) {
-        for cell in &self.astar.origins {
+    fn init_paths(&mut self, origins: &[Pair]) {
+        for cell in origins {
             let path = self
                 .astar
-                .astar(*cell, &self.constraints)
+                .astar(*cell, *cell, 0, None, None, &self.constraints)
                 .expect("Unable to find preliminary path!");
             self.solution.push(path);
         }
+    }
+
+    pub fn origins(&self) -> Path {
+        let mut out = Vec::with_capacity(self.solution.len());
+        for path in &self.solution {
+            out.push(path[0]);
+        }
+        out
     }
 
     fn extend_paths(&mut self) {
@@ -332,7 +350,7 @@ fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
     }
 }
 
-pub fn solve_mapf(mapf: &AStar) -> Vec<Path> {
-    let cbs = CBS::init(mapf);
+pub fn solve_mapf(mapf: &AStar, origins: &[Pair]) -> Vec<Path> {
+    let cbs = CBS::init(mapf, origins);
     greedy_with_heuristic(cbs)
 }

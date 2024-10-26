@@ -70,7 +70,6 @@ impl Debug for ScoredCell {
     }
 }
 
-// TODO: Verify that cost is a function of location and duration.1
 fn open_allows_candidate(candidate: &ScoredCell, open: &BinaryHeap<ScoredCell>) -> bool {
     let already_as_good = open
         .iter()
@@ -200,32 +199,23 @@ impl AStar {
         }
     }
 
-    pub fn astar(
-        &self,
-        uid: Pair,
-        start_cell: Pair,
-        start_time: usize,
-        end_cell: Option<Pair>,
-        end_time: Option<usize>,
-        constraints: &[Constraint],
-    ) -> Option<Path> {
+    pub fn astar(&self, specs: Specification) -> Option<Path> {
         let initial = UnitState {
-            uid,
-            location: start_cell.extend(self.terrain.unit_extent()),
-            duration: Pair(start_time, start_time),
+            uid: specs.uid,
+            location: specs.start_cell.extend(self.terrain.unit_extent()),
+            duration: Pair(specs.start_time, specs.start_time),
         };
-        let filt_const = &adapt_constraints(initial, constraints);
-        let heuristic = match end_cell {
+        let heuristic = match specs.end_cell {
             Some(cell) => &self.terrain.distances()[cell],
             None => &self.heuristic,
         };
 
         // Are we too far away?
-        match heuristic[start_cell] {
+        match heuristic[specs.start_cell] {
             None => return None,
             Some(estimate) => {
-                if let Some(time) = end_time {
-                    if start_time + estimate > time {
+                if let Some(time) = specs.end_time {
+                    if specs.start_time + estimate > time {
                         return None;
                     }
                 }
@@ -247,10 +237,15 @@ impl AStar {
                 }
                 Some(sc) => sc,
             };
-            if AStar::satisfies_cutoff(&current, end_time) {
-                for successor in self.successors(current, heuristic, filt_const) {
+            if AStar::satisfies_cutoff(&current, specs.end_time) {
+                for successor in self.successors(current, heuristic, &specs.constraints) {
                     if open_allows_candidate(&successor, &open) {
-                        if self.arrived(successor.unit, end_cell, end_time, filt_const) {
+                        if self.arrived(
+                            successor.unit,
+                            specs.end_cell,
+                            specs.end_time,
+                            &specs.constraints,
+                        ) {
                             let path = reconstruct_path(successor);
                             return Some(path);
                         }

@@ -95,7 +95,7 @@ fn main() {
     //    AStar::init(origins.to_vec(), destinations.to_vec(), Pair(1, 1), grid);
 
     let astar = test_astar();
-    for _ in 0..100 {
+    for _ in 0..10_000 {
         let mut rng = rand::thread_rng();
         let start_cell = Pair(rng.gen_range(10..40), rng.gen_range(10..40));
         let end_cell = if rng.gen_bool(0.5) {
@@ -111,8 +111,8 @@ fn main() {
         };
         let uid = start_cell;
         let constraints = Vec::new();
-        println!("Searching for path from {start_cell:?} to {end_cell:?}");
-        println!("Path should span from t = {start_time} to {end_time:?}");
+        //println!("Searching for path from {start_cell:?} to {end_cell:?}");
+        //println!("Path should span from t = {start_time} to {end_time:?}");
         let path = astar.astar(
             uid,
             start_cell,
@@ -121,13 +121,13 @@ fn main() {
             end_time,
             &constraints,
         );
-        match path {
-            None => println!("Path not found"),
-            Some(p) => {
-                println!("Path found:");
-                draw_with_paths(&astar, vec![p]);
-            }
-        }
+        //match path {
+        //    None => println!("Path not found"),
+        //    Some(p) => {
+        //        println!("Path found:");
+        //        draw_with_paths(&astar, vec![p]);
+        //    }
+        //}
     }
 
     //let sln = solve_mapf(&test);

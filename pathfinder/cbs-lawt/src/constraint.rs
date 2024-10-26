@@ -31,32 +31,98 @@ impl Constraint {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Conflict(pub UnitState, pub UnitState);
-
-impl Conflict {
-    pub fn uids(self) -> (Pair, Pair) {
-        (self.0.uid, self.1.uid)
-    }
+pub struct Specification {
+    pub uid: Pair,
+    pub start_cell: Pair,
+    pub start_time: usize,
+    pub end_cell: Option<Pair>,
+    pub end_time: Option<usize>,
+    pub constraints: Vec<Constraint>,
 }
 
-impl Conflict {
-    pub fn constraints(self) -> [Constraint; 2] {
-        [Constraint::Occupy(self.0), Constraint::Avoid(self.0)]
-    }
-}
-
-// Following functions assume the constraints have already been adapted, so do not verify UIDs
-pub fn adapt_constraints(unit: UnitState, constraints: &[Constraint]) -> Vec<Constraint> {
-    let mut out = Vec::with_capacity(constraints.len());
-    for constraint in constraints {
-        if unit.uid == constraint.uid() {
-            out.push(*constraint);
-        } else if let Constraint::Occupy(state) = constraint {
-            out.push(Constraint::Avoid(*state));
+impl Specification {
+    fn new(uid: Pair) -> Specification {
+        Specification {
+            uid,
+            start_cell: uid,
+            start_time: 0,
+            end_cell: None,
+            end_time: None,
+            constraints: Vec::new(),
         }
     }
-    out
+
+    pub fn init(new_constraint: Constraint, constraints: &[Constraint]) -> Specification {
+        let spec = spec_bounds(new_constraint, constraints);
+        adapt_const(spec, constraints)
+    }
+}
+
+fn spec_bounds(new_constraint: Constraint, constraints: &[Constraint]) -> Specification {
+    let uid = new_constraint.uid();
+    let mut specs = Specification::new(uid);
+    // First we find the bounds
+    for constraint in constraints {
+        if let Constraint::Occupy(state) = constraint {
+            if state.uid == uid {
+                if state.duration.0 <= new_constraint.duration().0
+                    && specs.start_time < state.duration.0
+                {
+                    specs.start_time = state.duration.0;
+                    specs.start_cell = state.location.origin;
+                }
+                if new_constraint.duration().1 <= state.duration.1 {
+                    if let Some(time) = specs.end_time {
+                        if state.duration.1 < time {
+                            specs.end_time = Some(state.duration.1);
+                            specs.end_cell = Some(state.location.origin);
+                        }
+                    } else {
+                        specs.end_time = Some(state.duration.1);
+                        specs.end_cell = Some(state.location.origin);
+                    }
+                }
+            }
+        }
+    }
+    specs
+}
+
+fn relevant_time(constraint: Constraint, spec: &Specification) -> bool {
+    if constraint.duration().1 >= spec.start_time {
+        if let Some(time) = spec.end_time {
+            if constraint.duration().0 <= time {
+                return true;
+            }
+        } else {
+            return true;
+        }
+    }
+    false
+}
+
+fn adapt_constraint(constraint: Constraint, spec: &Specification) -> Option<Constraint> {
+    if relevant_time(constraint, spec) {
+        if constraint.uid() == spec.uid {
+            Some(constraint)
+        } else {
+            match constraint {
+                Constraint::Occupy(state) => Some(Constraint::Avoid(state)),
+                Constraint::Avoid(_) => None,
+            }
+        }
+    } else {
+        None
+    }
+}
+
+fn adapt_const(mut spec: Specification, constraints: &[Constraint]) -> Specification {
+    let adapted = constraints
+        .iter()
+        .filter_map(|constraint| adapt_constraint(*constraint, &spec))
+        .collect();
+    spec.constraints = adapted;
+    spec
 }
 
 fn violates_constraint(unit: UnitState, constraint: Constraint) -> bool {
@@ -95,4 +161,19 @@ pub fn may_stop(unit: UnitState, constraints: &[Constraint]) -> bool {
     !constraints
         .iter()
         .any(|constraint| blocks_stop(unit, *constraint))
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Conflict(pub UnitState, pub UnitState);
+
+impl Conflict {
+    pub fn uids(self) -> (Pair, Pair) {
+        (self.0.uid, self.1.uid)
+    }
+}
+
+impl Conflict {
+    pub fn constraints(self) -> [Constraint; 2] {
+        [Constraint::Occupy(self.0), Constraint::Avoid(self.0)]
+    }
 }
