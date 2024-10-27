@@ -41,7 +41,7 @@ pub struct Specification {
 }
 
 impl Specification {
-    fn new(uid: Pair) -> Specification {
+    pub fn new(uid: Pair) -> Specification {
         Specification {
             uid,
             start_cell: uid,

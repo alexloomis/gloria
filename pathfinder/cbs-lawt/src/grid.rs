@@ -2,7 +2,7 @@ use crate::prelude::*;
 use core::panic;
 use std::ops::{Index, IndexMut};
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Grid<T> {
     data: Vec<T>,
     extent: Pair,
@@ -58,6 +58,27 @@ impl<T> Grid<T> {
             let position = Grid::<T>::usize_to_pair_(extent, index);
             (position, i)
         })
+    }
+
+    pub fn col_before(&self, index: Pair) -> Vec<Pair> {
+        (0..index.1).map(|y| Pair(index.0, y)).collect()
+    }
+
+    pub fn col_after(&self, index: Pair) -> Vec<Pair> {
+        (index.1..self.extent().1)
+            .map(|y| Pair(index.0, y + 1))
+            .collect()
+    }
+
+    pub fn border(&self, index: Pair) -> Vec<Pair> {
+        let mut out = Vec::with_capacity(self.size().1);
+        out.push(index);
+        out.append(&mut self.col_before(index));
+        if index.0 > 0 {
+            let left = Pair(index.0 - 1, index.1);
+            out.append(&mut self.col_after(left));
+        }
+        out
     }
 }
 

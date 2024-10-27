@@ -60,7 +60,7 @@ impl CBS<'_> {
         }
     }
 
-    pub fn init<'a, 'b>(astar: &'a AStar, origins: &'b [Pair]) -> CBS<'a> {
+    pub fn init<'a>(astar: &'a AStar, origins: &[Pair]) -> CBS<'a> {
         let mut cbs = CBS::new(astar);
         cbs.init_paths(origins);
         cbs.extend_paths();
@@ -73,7 +73,7 @@ impl CBS<'_> {
         for cell in origins {
             let path = self
                 .astar
-                .astar(*cell, *cell, 0, None, None, &self.constraints)
+                .astar(Specification::new(*cell))
                 .expect("Unable to find preliminary path!");
             self.solution.push(path);
         }
@@ -156,9 +156,8 @@ impl CBS<'_> {
     /// Exploration functions
 
     fn explore_constraint(&self, constraint: Constraint) -> Option<Path> {
-        let mut constraints = self.constraints.clone();
-        constraints.push(constraint);
-        self.astar.astar(constraint.uid(), &constraints)
+        let specs = Specification::init(constraint, &self.constraints);
+        self.astar.astar(specs)
     }
 
     fn explore_conflict(&self, conflict: Conflict) -> Exploration {

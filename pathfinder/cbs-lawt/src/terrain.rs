@@ -1,6 +1,6 @@
 use crate::grid::Grid;
 use crate::prelude::*;
-use std::{collections::BinaryHeap, ops::Sub, usize};
+use radix_heap::RadixHeapMap;
 
 pub struct Terrain {
     base_costs: Grid<Option<usize>>,
@@ -29,8 +29,8 @@ impl Terrain {
     // Max origin for a unit with extent `extent`
     pub fn extent(&self) -> Pair {
         Pair(
-            self.base_costs.extent().0.sub(self.unit_extent.0),
-            self.base_costs.extent().0.sub(self.unit_extent.1),
+            self.base_costs.extent().0 - self.unit_extent.0,
+            self.base_costs.extent().0 - self.unit_extent.1,
         )
     }
 
@@ -112,18 +112,29 @@ impl Terrain {
         if self.costs[to].is_none() {
             return;
         }
-        let mut open = BinaryHeap::with_capacity(self.size().0 * self.size().1);
-        open.push(DjikstraCell {
-            location: to,
-            cost_so_far: 0,
-        });
+        data[to] = Some(0);
+        let border = self.costs.border(to);
+        let mut open = RadixHeapMap::new_at(0);
+        for cell in border.clone() {
+            if let Some(cost) = data[cell] {
+                let dc = DjikstraCell {
+                    location: cell,
+                    cost_so_far: cost,
+                };
+                // Cell is reopened to allow paths to travel trough it
+                data[cell] = None;
+                open.push(-(cost as i64), dc);
+            }
+        }
 
         while !open.is_empty() {
             let cell = match open.pop() {
-                Some(c) => c,
-                None => break,
+                Some((_, v)) => v,
+                None => {
+                    break;
+                }
             };
-            // If the cell has already been fully resolved, constinue
+            // If the cell has already been fully resolved, continue
             if data[cell.location].is_some() {
                 continue;
             }
@@ -134,10 +145,11 @@ impl Terrain {
                 if data[neighbor].is_none() {
                     // Cell is clear, and hence cost() does not panic
                     let new_cost = cell.cost_so_far + self.cost(cell.location);
-                    open.push(DjikstraCell {
+                    let dc = DjikstraCell {
                         location: neighbor,
                         cost_so_far: new_cost,
-                    });
+                    };
+                    open.push(-(new_cost as i64), dc);
                 }
             }
         }
@@ -170,7 +182,6 @@ impl Terrain {
             // Use that information to fill out distances from `cell`
             let cell_idx = distances.pair_to_usize(cell);
             for to in distances.indicies().iter().skip(cell_idx + 1) {
-                // TODO: double-check indicies
                 distances[*to][cell] = self.c_distance(cell, *to, &distances)
             }
         }
@@ -182,7 +193,7 @@ impl Terrain {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 struct DjikstraCell {
     cost_so_far: usize,
     location: Pair,

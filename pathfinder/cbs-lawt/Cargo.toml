@@ -9,6 +9,7 @@ description = "Pathfinding for a game."
 # grid = "0.15.0"
 # coz = "0.1.3"
 rand = "0.8.5"
+radix-heap = "0.4.2"
 
 [profile.release]
 debug = 1

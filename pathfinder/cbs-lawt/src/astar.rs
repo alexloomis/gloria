@@ -2,7 +2,9 @@ use crate::constraint::*;
 use crate::grid::Grid;
 use crate::prelude::*;
 use crate::terrain::Terrain;
-use std::collections::BinaryHeap;
+use radix_heap::RadixHeapMap;
+use std::cell;
+use std::cmp::min;
 use std::fmt::Debug;
 use std::rc::Rc;
 
@@ -70,12 +72,10 @@ impl Debug for ScoredCell {
     }
 }
 
-fn open_allows_candidate(candidate: &ScoredCell, open: &BinaryHeap<ScoredCell>) -> bool {
-    let already_as_good = open
+fn open_allows_candidate(candidate: &ScoredCell, open: &RadixHeapMap<i64, ScoredCell>) -> bool {
+    !open
         .iter()
-        .filter(|cell| candidate.cost <= cell.cost)
-        .any(|cell| cell.location() == candidate.location());
-    !already_as_good
+        .any(|(_, cell)| candidate.cost <= cell.cost && cell.location() == candidate.location())
 }
 
 fn reconstruct_path(last: ScoredCell) -> Path {
@@ -105,8 +105,11 @@ impl AStar {
         for destination in self.destinations.iter().skip(1) {
             let distances = &self.terrain.distances()[*destination];
             for (cell, cost) in distances.indexed_iter() {
-                if cost.is_some() && *cost < self.heuristic[cell] {
-                    self.heuristic[cell] = *cost
+                if let Some(c_new) = cost {
+                    self.heuristic[cell] = match self.heuristic[cell] {
+                        None => Some(*c_new),
+                        Some(c_old) => Some(min(*c_new, c_old)),
+                    }
                 }
             }
         }
@@ -212,7 +215,9 @@ impl AStar {
 
         // Are we too far away?
         match heuristic[specs.start_cell] {
-            None => return None,
+            None => {
+                return None;
+            }
             Some(estimate) => {
                 if let Some(time) = specs.end_time {
                     if specs.start_time + estimate > time {
@@ -222,23 +227,24 @@ impl AStar {
             }
         }
 
-        let Pair(x_extent, y_extent) = self.terrain.extent();
-        let mut open = BinaryHeap::with_capacity(x_extent * y_extent);
-        open.push(ScoredCell {
+        let mut open = RadixHeapMap::new_at(0);
+        let sc = ScoredCell {
             cost: 0,
             unit: initial,
             prev: None,
-        });
+        };
+        // May cause an issue if cost > 2^32
+        open.push(-(sc.cost as i64), sc);
 
         loop {
-            let current = match open.pop() {
+            let (_, current) = match open.pop() {
                 None => {
                     return None;
                 }
                 Some(sc) => sc,
             };
             if AStar::satisfies_cutoff(&current, specs.end_time) {
-                for successor in self.successors(current, heuristic, &specs.constraints) {
+                for successor in self.successors(current.clone(), heuristic, &specs.constraints) {
                     if open_allows_candidate(&successor, &open) {
                         if self.arrived(
                             successor.unit,
@@ -249,7 +255,7 @@ impl AStar {
                             let path = reconstruct_path(successor);
                             return Some(path);
                         }
-                        open.push(successor);
+                        open.push(-(successor.cost as i64), successor);
                     }
                 }
             }
