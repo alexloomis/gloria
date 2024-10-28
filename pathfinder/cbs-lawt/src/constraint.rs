@@ -31,6 +31,7 @@ impl Constraint {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Specification {
     pub uid: Pair,
     pub start_cell: Pair,
@@ -48,81 +49,129 @@ impl Specification {
             start_time: 0,
             end_cell: None,
             end_time: None,
+            // TODO: ensure all UIDs match self.uid
             constraints: Vec::new(),
         }
     }
 
-    pub fn init(new_constraint: Constraint, constraints: &[Constraint]) -> Specification {
-        let spec = spec_bounds(new_constraint, constraints);
-        adapt_const(spec, constraints)
+    // TODO: Occupy should generate then join two new paths
+    pub fn create(constraint: Constraint, constraints: &[Constraint]) -> Vec<Specification> {
+        let mut spec = Specification::new(constraint.uid());
+        spec.constraints = constraints.to_vec();
+        let mut specs = spec.time_adaptations(constraint);
+        for s in specs.iter_mut() {
+            s.add_and_adapt(constraint);
+        }
+        specs
     }
-}
 
-fn spec_bounds(new_constraint: Constraint, constraints: &[Constraint]) -> Specification {
-    let uid = new_constraint.uid();
-    let mut specs = Specification::new(uid);
-    // First we find the bounds
-    for constraint in constraints {
-        if let Constraint::Occupy(state) = constraint {
-            if state.uid == uid {
-                if state.duration.0 <= new_constraint.duration().0
-                    && specs.start_time < state.duration.0
-                {
-                    specs.start_time = state.duration.0;
-                    specs.start_cell = state.location.origin;
-                }
-                if new_constraint.duration().1 <= state.duration.1 {
-                    if let Some(time) = specs.end_time {
-                        if state.duration.1 < time {
-                            specs.end_time = Some(state.duration.1);
-                            specs.end_cell = Some(state.location.origin);
-                        }
-                    } else {
-                        specs.end_time = Some(state.duration.1);
-                        specs.end_cell = Some(state.location.origin);
+    // TODO: think carefully about how this works with overlaps,
+    // and what it means in terms of gluing paths together
+    fn adapt_start(&mut self, unit_state: UnitState) {
+        for constraint in &self.constraints {
+            if let Constraint::Occupy(state) = constraint {
+                if state.uid == self.uid {
+                    if state.duration.0 <= unit_state.duration.0
+                        && self.start_time < state.duration.0
+                    {
+                        self.start_time = state.duration.0;
+                        self.start_cell = state.location.origin;
                     }
                 }
             }
         }
     }
-    specs
-}
 
-fn relevant_time(constraint: Constraint, spec: &Specification) -> bool {
-    if constraint.duration().1 >= spec.start_time {
-        if let Some(time) = spec.end_time {
-            if constraint.duration().0 <= time {
+    fn adapt_end(&mut self, unit_state: UnitState) {
+        for constraint in &self.constraints {
+            if let Constraint::Occupy(state) = constraint {
+                if state.uid == self.uid {
+                    if unit_state.duration.1 <= state.duration.1 {
+                        if let Some(time) = self.end_time {
+                            if state.duration.1 < time {
+                                self.end_time = Some(state.duration.1);
+                                self.end_cell = Some(state.location.origin);
+                            }
+                        } else {
+                            self.end_time = Some(state.duration.1);
+                            self.end_cell = Some(state.location.origin);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn set_start(&mut self, unit_state: UnitState) {
+        self.start_cell = unit_state.location.origin;
+        self.start_time = unit_state.duration.1;
+    }
+
+    fn set_end(&mut self, unit_state: UnitState) {
+        self.end_time = Some(unit_state.duration.0);
+        self.end_cell = Some(unit_state.location.origin);
+    }
+
+    fn time_adaptations(self, constraint: Constraint) -> Vec<Specification> {
+        match constraint {
+            Constraint::Avoid(unit_state) => {
+                let mut spec = self;
+                spec.adapt_start(unit_state);
+                spec.adapt_end(unit_state);
+                vec![spec]
+            }
+            Constraint::Occupy(unit_state) => {
+                let mut before = self.clone();
+                before.adapt_start(unit_state);
+                before.set_end(unit_state);
+                let mut after = self;
+                after.set_start(unit_state);
+                after.adapt_end(unit_state);
+                vec![before, after]
+            }
+        }
+    }
+
+    fn relevant_time(&self, constraint: Constraint) -> bool {
+        if constraint.duration().1 >= self.start_time {
+            if let Some(time) = self.end_time {
+                if constraint.duration().0 <= time {
+                    return true;
+                }
+            } else {
                 return true;
             }
-        } else {
-            return true;
         }
+        false
     }
-    false
-}
 
-fn adapt_constraint(constraint: Constraint, spec: &Specification) -> Option<Constraint> {
-    if relevant_time(constraint, spec) {
-        if constraint.uid() == spec.uid {
-            Some(constraint)
-        } else {
-            match constraint {
-                Constraint::Occupy(state) => Some(Constraint::Avoid(state)),
-                Constraint::Avoid(_) => None,
+    fn adapt_constraint(&self, constraint: Constraint) -> Option<Constraint> {
+        if self.relevant_time(constraint) {
+            if constraint.uid() == self.uid {
+                Some(constraint)
+            } else {
+                match constraint {
+                    Constraint::Occupy(state) => Some(Constraint::Avoid(state)),
+                    Constraint::Avoid(_) => None,
+                }
             }
+        } else {
+            None
         }
-    } else {
-        None
     }
-}
 
-fn adapt_const(mut spec: Specification, constraints: &[Constraint]) -> Specification {
-    let adapted = constraints
-        .iter()
-        .filter_map(|constraint| adapt_constraint(*constraint, &spec))
-        .collect();
-    spec.constraints = adapted;
-    spec
+    fn adapt_constraints(&mut self) {
+        self.constraints = self
+            .constraints
+            .iter()
+            .filter_map(|constraint| self.adapt_constraint(*constraint))
+            .collect();
+    }
+
+    fn add_and_adapt(&mut self, constraint: Constraint) {
+        self.constraints.push(constraint);
+        self.adapt_constraints();
+    }
 }
 
 fn violates_constraint(unit: UnitState, constraint: Constraint) -> bool {
@@ -146,7 +195,12 @@ pub fn satisfies_constraints(unit: UnitState, constraints: &[Constraint]) -> boo
         .any(|constraint| violates_constraint(unit, *constraint))
 }
 
-fn blocks_stop(unit: UnitState, constraint: Constraint) -> bool {
+pub fn legal_path(path: Path, constraints: &[Constraint]) -> bool {
+    path.iter()
+        .all(|state| satisfies_constraints(*state, constraints))
+}
+
+fn prevents_stopping(unit: UnitState, constraint: Constraint) -> bool {
     match constraint {
         Constraint::Avoid(state) => {
             unit.location.intersects(state.location) && unit.duration.0 <= state.duration.1
@@ -160,7 +214,7 @@ fn blocks_stop(unit: UnitState, constraint: Constraint) -> bool {
 pub fn may_stop(unit: UnitState, constraints: &[Constraint]) -> bool {
     !constraints
         .iter()
-        .any(|constraint| blocks_stop(unit, *constraint))
+        .any(|constraint| prevents_stopping(unit, *constraint))
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

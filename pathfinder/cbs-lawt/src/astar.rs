@@ -3,7 +3,6 @@ use crate::grid::Grid;
 use crate::prelude::*;
 use crate::terrain::Terrain;
 use radix_heap::RadixHeapMap;
-use std::cell;
 use std::cmp::min;
 use std::fmt::Debug;
 use std::rc::Rc;

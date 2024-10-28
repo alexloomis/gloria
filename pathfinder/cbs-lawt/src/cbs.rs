@@ -2,6 +2,7 @@ use crate::astar::AStar;
 use crate::constraint::*;
 use crate::prelude::*;
 use std::collections::BinaryHeap;
+use std::io;
 use std::ptr::eq as ptr_eq;
 
 struct InternalStateData {
@@ -156,14 +157,20 @@ impl CBS<'_> {
     /// Exploration functions
 
     fn explore_constraint(&self, constraint: Constraint) -> Option<Path> {
-        let specs = Specification::init(constraint, &self.constraints);
+        let specs = Specification::create(constraint, &self.constraints);
         self.astar.astar(specs)
     }
 
     fn explore_conflict(&self, conflict: Conflict) -> Exploration {
         let constraints = Conflict::constraints(conflict);
         let path_0 = self.explore_constraint(constraints[0]);
+        if !legal_path(path_0.clone().unwrap_or(Vec::new()), &vec![constraints[0]]) {
+            panic!();
+        }
         let path_1 = self.explore_constraint(constraints[1]);
+        if !legal_path(path_1.clone().unwrap_or(Vec::new()), &vec![constraints[1]]) {
+            panic!();
+        }
         Exploration {
             conflict,
             constraints,
@@ -288,16 +295,20 @@ fn greedy_choices(explorations: Vec<Exploration>) -> Vec<Exploration> {
     out
 }
 
-fn update_cbs(mut cbs: CBS, constrait: Constraint, path: Path) -> CBS {
-    cbs.constraints.push(constrait);
+fn update_cbs(mut cbs: CBS, constraint: Constraint, path: Path) -> CBS {
+    if cbs.constraints.contains(&constraint) {
+        panic!("duplicate constraint!");
+    }
+    cbs.constraints.push(constraint);
     cbs.change_path(path);
     cbs.extend_paths();
     cbs.find_cost();
     cbs
 }
 
+// TODO: fix bug: currently recieves partial paths
 fn expand_exploration(cbs: CBS, exploration: Exploration) -> Vec<CBS> {
-    let mut out = Vec::with_capacity(exploration.constraints.len());
+    let mut out = Vec::with_capacity(exploration.constraints.len()); // with_capacity(2);
     for (idx, solution) in exploration.solutions.into_iter().enumerate() {
         if let Some(path) = solution {
             let new = update_cbs(cbs.clone(), exploration.constraints[idx], path);
@@ -325,15 +336,18 @@ fn expand_explorations(cbs: CBS, explorations: Vec<Exploration>) -> Vec<CBS> {
 }
 
 fn expand_node(cbs: CBS) -> Vec<CBS> {
-    let mut explorations = cbs.explore();
-    explorations = greedy_choices(explorations);
-    expand_explorations(cbs, explorations)
+    let explorations = cbs.explore();
+    let greedy = greedy_choices(explorations);
+    expand_explorations(cbs, greedy)
 }
 
 fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
     let mut open = BinaryHeap::new();
     open.push(cbs);
+    let mut i = 0;
     loop {
+        println!("loop {i}");
+        i += 1;
         let node = match open.pop() {
             None => panic!("Exhausted states. Should be impossible."),
             Some(new_node) => new_node,
@@ -345,7 +359,10 @@ fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
             } else {
                 open.push(child);
             }
+            println!();
         }
+        let mut s = String::new();
+        let _ = io::stdin().read_line(&mut s);
     }
 }
 

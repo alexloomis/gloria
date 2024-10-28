@@ -1,5 +1,6 @@
 #![allow(unused)]
-use cbs_lawt::astar::AStar;
+use cbs_lawt::astar::{self, AStar};
+use cbs_lawt::cbs::{solve_mapf, CBS};
 use cbs_lawt::constraint::Specification;
 // samply record ./path/to/bin to profile
 //use cbs_lawt::astar::AStar;
@@ -39,10 +40,10 @@ fn make_grid(extent: Pair, density: f64, avoid: Vec<Pair>) -> Grid<Option<usize>
 fn test_terrain() -> Terrain {
     let origins = formation(Pair(1, 5), 2, Pair(3, 2));
     let destinations = formation(Pair(1, 5), 2, Pair(15, 3));
-    let unit_extent = Pair(1, 1);
+    let unit_extent = Pair(0, 0);
     let mut clear = origins.clone();
     clear.append(&mut destinations.clone());
-    let grid = make_grid(Pair(50, 50), 0.05, clear);
+    let grid = make_grid(Pair(35, 35), 0.05, clear);
     Terrain::init(grid, unit_extent)
 }
 
@@ -86,6 +87,15 @@ fn draw_with_paths(astar: &AStar, paths: Vec<Path>) {
     }
 }
 
+fn main() {
+    let astar = test_astar();
+    let origins = formation(Pair(1, 5), 2, Pair(3, 2));
+    let solution = solve_mapf(&astar, &origins);
+    for path in solution {
+        draw_with_paths(&astar, vec![path]);
+    }
+}
+
 //fn main() {
 //    let astar = baby_astar();
 //    let mut rng = rand::thread_rng();
@@ -115,41 +125,41 @@ fn draw_with_paths(astar: &AStar, paths: Vec<Path>) {
 //    }
 //}
 
-fn main() {
-    let astar = test_astar();
-    let mut rng = rand::thread_rng();
-    for _ in 0..10_000 {
-        let start_cell = Pair(rng.gen_range(10..40), rng.gen_range(10..40));
-        let end_cell = if rng.gen_bool(0.5) {
-            Some(Pair(rng.gen_range(10..40), rng.gen_range(10..40)))
-        } else {
-            None
-        };
-        let start_time = rng.gen_range(0..10);
-        let end_time = if rng.gen_bool(0.5) {
-            Some(start_time + rng.gen_range(50..100))
-        } else {
-            None
-        };
-        let uid = start_cell;
-        let constraints = Vec::new();
-        let spec = Specification {
-            uid,
-            start_cell,
-            start_time,
-            end_cell,
-            end_time,
-            constraints,
-        };
-        //println!("Searching for path from {start_cell:?} to {end_cell:?}");
-        //println!("Path should span from t = {start_time} to {end_time:?}");
-        let path = astar.astar(spec);
-        //match path {
-        //    None => println!("Path not found"),
-        //    Some(p) => {
-        //        println!("Path found:");
-        //        draw_with_paths(&astar, vec![p]);
-        //    }
-        //}
-    }
-}
+//fn main() {
+//    let astar = test_astar();
+//    let mut rng = rand::thread_rng();
+//    for _ in 0..10_000 {
+//        let start_cell = Pair(rng.gen_range(10..40), rng.gen_range(10..40));
+//        let end_cell = if rng.gen_bool(0.5) {
+//            Some(Pair(rng.gen_range(10..40), rng.gen_range(10..40)))
+//        } else {
+//            None
+//        };
+//        let start_time = rng.gen_range(0..10);
+//        let end_time = if rng.gen_bool(0.5) {
+//            Some(start_time + rng.gen_range(50..100))
+//        } else {
+//            None
+//        };
+//        let uid = start_cell;
+//        let constraints = Vec::new();
+//        let spec = Specification {
+//            uid,
+//            start_cell,
+//            start_time,
+//            end_cell,
+//            end_time,
+//            constraints,
+//        };
+//        //println!("Searching for path from {start_cell:?} to {end_cell:?}");
+//        //println!("Path should span from t = {start_time} to {end_time:?}");
+//        let path = astar.astar(spec);
+//        //match path {
+//        //    None => println!("Path not found"),
+//        //    Some(p) => {
+//        //        println!("Path found:");
+//        //        draw_with_paths(&astar, vec![p]);
+//        //    }
+//        //}
+//    }
+//}
