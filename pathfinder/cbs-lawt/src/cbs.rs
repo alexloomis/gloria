@@ -82,7 +82,7 @@ impl CBS<'_> {
 
     fn extend_paths(&mut self) {
         let mut end_time = 0;
-        for (_, path) in &self.solution {
+        for path in self.solution.values() {
             if path.is_empty() {
                 panic!("Empty solution!");
             }
@@ -146,19 +146,21 @@ impl CBS<'_> {
 
     fn explore_constraint(&self, constraint: Constraint) -> Option<Path> {
         let specs = Specification::create(constraint, &self.constraints);
-        self.astar.astar(specs)
+        let mut new_path = self.solution[&constraint.uid()].clone();
+        for spec in specs {
+            if let Some(patch) = self.astar.astar(spec) {
+                new_path = patch_path(new_path, patch)
+            } else {
+                return None;
+            }
+        }
+        Some(new_path)
     }
 
     fn explore_conflict(&self, conflict: Conflict) -> Exploration {
         let constraints = Conflict::constraints(conflict);
         let path_0 = self.explore_constraint(constraints[0]);
-        if !legal_path(path_0.clone().unwrap_or(Vec::new()), &vec![constraints[0]]) {
-            panic!();
-        }
         let path_1 = self.explore_constraint(constraints[1]);
-        if !legal_path(path_1.clone().unwrap_or(Vec::new()), &vec![constraints[1]]) {
-            panic!();
-        }
         Exploration {
             conflict,
             constraints,
@@ -175,12 +177,8 @@ impl CBS<'_> {
         explorations
     }
 
-    fn change_path(&mut self, uid: Pair, _path: Path) {
-        for (_idx, (old_uid, _old_path)) in self.solution.iter().enumerate() {
-            if uid == *old_uid {
-                todo!();
-            }
-        }
+    fn change_path(&mut self, uid: Pair, path: Path) {
+        self.solution.insert(uid, path);
     }
 }
 
@@ -287,7 +285,7 @@ fn update_cbs(mut cbs: CBS, constraint: Constraint, path: Path) -> CBS {
         panic!("duplicate constraint!");
     }
     cbs.constraints.push(constraint);
-    cbs.change_path(path);
+    cbs.change_path(constraint.uid(), path);
     cbs.extend_paths();
     cbs
 }
@@ -341,7 +339,7 @@ fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
         let children = expand_node(node.clone());
         for child in children {
             if child.conflicts.is_empty() {
-                return child.solution.into_iter().map(|(_, v)| v).collect();
+                return child.solution.into_values().collect();
             } else {
                 open.push(child);
             }
