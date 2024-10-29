@@ -336,14 +336,24 @@ fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
     open.push(cbs);
     let mut i = 0;
     loop {
-        //println!("loop {i}");
+        println!("loop {i}");
         i += 1;
         let node = match open.pop() {
             None => panic!("Exhausted states. Should be impossible."),
             Some(new_node) => new_node,
         };
-        let children = expand_node(node.clone());
+        println!("from constraints {:?}", node.constraints);
+        println!("have solution");
+        print_paths(&node.solution);
+        println!("with conflicts {:?}", node.conflicts);
+        println!();
+        let children = expand_node(node);
         for child in children {
+            println!("- with constraints {:?}", child.constraints);
+            println!("- made solution");
+            print_paths(&child.solution);
+            println!("- with conflicts {:?}", child.conflicts);
+            println!();
             if child.conflicts.is_empty() {
                 return child.solution.into_values().collect();
             } else {
@@ -351,8 +361,8 @@ fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
             }
             //println!();
         }
-        //let mut s = String::new();
-        //let _ = io::stdin().read_line(&mut s);
+        let mut s = String::new();
+        let _ = io::stdin().read_line(&mut s);
     }
 }
 

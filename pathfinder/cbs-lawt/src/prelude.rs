@@ -178,6 +178,13 @@ pub fn print_path(path: &Path) {
     }
 }
 
+pub fn print_paths(paths: &HashMap<Pair, Path>) {
+    for (uid, path) in paths {
+        println!("Path for unit {uid:?}");
+        print_path(path);
+    }
+}
+
 pub fn check_path_times(path: &Path) {
     let mut message = None;
     if path[0].duration.0 > path[0].duration.1 {

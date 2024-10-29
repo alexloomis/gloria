@@ -1,16 +1,39 @@
+// samply record ./path/to/bin to profile
 #![allow(unused)]
 use cbs_lawt::astar::{self, AStar};
 use cbs_lawt::cbs::{solve_mapf, CBS};
 use cbs_lawt::constraint::Specification;
-// samply record ./path/to/bin to profile
-//use cbs_lawt::astar::AStar;
-//use cbs_lawt::cbs::solve_mapf;
 use cbs_lawt::grid::Grid;
 use cbs_lawt::prelude::{Pair, Path};
 use cbs_lawt::terrain::Terrain;
 use rand::Rng;
 
 const GRID_CONST: usize = 15;
+
+fn bottleneck_grid_0() -> Grid<Option<usize>> {
+    let mut grid: Grid<Option<usize>> = Grid::init(Pair(2, 2), Some(1));
+    grid[Pair(0, 1)] = None;
+    grid[Pair(2, 1)] = None;
+    grid
+}
+
+fn bottleneck_terrain_0() -> Terrain {
+    Terrain::init(bottleneck_grid_0(), Pair(0, 0))
+}
+
+fn bottleneck_astar_0() -> AStar {
+    let destinations = vec![Pair(0, 2), Pair(2, 2)];
+    AStar::init(bottleneck_terrain_0(), destinations)
+}
+
+fn main() {
+    let astar = bottleneck_astar_0();
+    let origins = vec![Pair(0, 0), Pair(2, 0)];
+    let solution = solve_mapf(&astar, &origins);
+    for path in solution {
+        draw_with_paths(&astar, vec![path]);
+    }
+}
 
 fn formation(size: Pair, spread: usize, offset: Pair) -> Vec<Pair> {
     let mut out = Vec::with_capacity(size.0 * size.1);
@@ -87,14 +110,14 @@ fn draw_with_paths(astar: &AStar, paths: Vec<Path>) {
     }
 }
 
-fn main() {
-    let astar = test_astar();
-    let origins = formation(Pair(1, 5), 2, Pair(3, 2));
-    let solution = solve_mapf(&astar, &origins);
-    for path in solution {
-        draw_with_paths(&astar, vec![path]);
-    }
-}
+//fn main() {
+//    let astar = test_astar();
+//    let origins = formation(Pair(1, 5), 2, Pair(3, 2));
+//    let solution = solve_mapf(&astar, &origins);
+//    for path in solution {
+//        draw_with_paths(&astar, vec![path]);
+//    }
+//}
 
 //fn main() {
 //    let astar = baby_astar();
