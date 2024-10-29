@@ -159,8 +159,17 @@ impl CBS<'_> {
 
     fn explore_conflict(&self, conflict: Conflict) -> Exploration {
         let constraints = Conflict::constraints(conflict);
+        // TODO: fix, highly fragile!
+        let uid_1_avoid = match constraints[1] {
+            Constraint::Occupy(state) => Constraint::Avoid(UnitState {
+                uid: conflict.uids()[1],
+                location: state.location,
+                duration: state.duration,
+            }),
+            Constraint::Avoid(_) => panic!("constraints outputting in a new order?"),
+        };
         let path_0 = self.explore_constraint(constraints[0]);
-        let path_1 = self.explore_constraint(constraints[1]);
+        let path_1 = self.explore_constraint(uid_1_avoid);
         Exploration {
             conflict,
             constraints,
@@ -216,7 +225,7 @@ impl Exploration {
             .unwrap()
     }
 
-    fn uids(&self) -> (Pair, Pair) {
+    fn uids(&self) -> [Pair; 2] {
         self.conflict.uids()
     }
 }
@@ -271,16 +280,16 @@ fn greedy_choices(explorations: Vec<Exploration>) -> Vec<Exploration> {
     let mut seen = Vec::with_capacity(explorations.len() * 2);
     for exploration in prioritize(explorations) {
         let uids = exploration.uids();
-        if !(seen.contains(&uids.0) || seen.contains(&uids.1)) {
+        if !(seen.contains(&uids[0]) || seen.contains(&uids[1])) {
             out.push(exploration);
-            seen.push(uids.0);
-            seen.push(uids.1);
+            seen.push(uids[0]);
+            seen.push(uids[1]);
         }
     }
     out
 }
 
-fn update_cbs(mut cbs: CBS, constraint: Constraint, path: Path) -> CBS {
+fn update_cbs(mut cbs: CBS, constraint: Constraint, path: Path, path_uid: Pair) -> CBS {
     //if cbs.constraints.contains(&constraint) {
     //    println!("duplicate constraint!");
     //    println!("old constraints: {:?}", cbs.constraints);
@@ -292,16 +301,18 @@ fn update_cbs(mut cbs: CBS, constraint: Constraint, path: Path) -> CBS {
     //    panic!();
     //}
     cbs.constraints.push(constraint);
-    cbs.change_path(constraint.uid(), path);
+    cbs.change_path(path_uid, path);
     cbs.extend_paths();
     cbs
 }
 
+// TODO: Check me
 fn expand_exploration(cbs: CBS, exploration: Exploration) -> Vec<CBS> {
     let mut out = Vec::with_capacity(exploration.constraints.len()); // with_capacity(2);
+    let uids = exploration.uids();
     for (idx, solution) in exploration.solutions.into_iter().enumerate() {
         if let Some(path) = solution {
-            let new = update_cbs(cbs.clone(), exploration.constraints[idx], path);
+            let new = update_cbs(cbs.clone(), exploration.constraints[idx], path, uids[idx]);
             out.push(new);
         }
     }

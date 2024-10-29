@@ -32,6 +32,7 @@ fn main() {
     let solution = solve_mapf(&astar, &origins);
     for path in solution {
         draw_with_paths(&astar, vec![path]);
+        println!()
     }
 }
 

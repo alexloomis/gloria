@@ -214,13 +214,13 @@ pub fn may_stop(unit: UnitState, constraints: &[Constraint]) -> bool {
 pub struct Conflict(pub UnitState, pub UnitState);
 
 impl Conflict {
-    pub fn uids(self) -> (Pair, Pair) {
-        (self.0.uid, self.1.uid)
+    pub fn uids(self) -> [Pair; 2] {
+        [self.0.uid, self.1.uid]
     }
 }
 
 impl Conflict {
     pub fn constraints(self) -> [Constraint; 2] {
-        [Constraint::Occupy(self.0), Constraint::Avoid(self.0)]
+        [Constraint::Avoid(self.0), Constraint::Occupy(self.0)]
     }
 }
