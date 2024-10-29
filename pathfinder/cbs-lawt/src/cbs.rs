@@ -2,6 +2,7 @@ use crate::astar::AStar;
 use crate::constraint::*;
 use crate::prelude::*;
 use std::collections::BinaryHeap;
+use std::collections::HashMap;
 use std::io;
 use std::ptr::eq as ptr_eq;
 
@@ -16,7 +17,7 @@ struct InternalStateData {
 pub struct CBS<'a> {
     astar: &'a AStar,
     constraints: Vec<Constraint>,
-    solution: Vec<Path>,
+    solution: HashMap<Pair, Path>,
     cost: usize,
     conflicts: Vec<Conflict>,
 }
@@ -55,7 +56,7 @@ impl CBS<'_> {
         CBS {
             astar,
             constraints: Vec::new(),
-            solution: Vec::new(),
+            solution: HashMap::new(),
             cost: 0,
             conflicts: Vec::new(),
         }
@@ -65,7 +66,6 @@ impl CBS<'_> {
         let mut cbs = CBS::new(astar);
         cbs.init_paths(origins);
         cbs.extend_paths();
-        cbs.find_cost();
         cbs.find_conflicts();
         cbs
     }
@@ -76,21 +76,13 @@ impl CBS<'_> {
                 .astar
                 .astar(Specification::new(*cell))
                 .expect("Unable to find preliminary path!");
-            self.solution.push(path);
+            self.solution.insert(*cell, path);
         }
-    }
-
-    pub fn origins(&self) -> Path {
-        let mut out = Vec::with_capacity(self.solution.len());
-        for path in &self.solution {
-            out.push(path[0]);
-        }
-        out
     }
 
     fn extend_paths(&mut self) {
         let mut end_time = 0;
-        for path in &self.solution {
+        for (_, path) in &self.solution {
             if path.is_empty() {
                 panic!("Empty solution!");
             }
@@ -98,23 +90,19 @@ impl CBS<'_> {
                 end_time = path[path.len() - 1].duration.1
             }
         }
-        for path in self.solution.iter_mut() {
+        for (_, path) in self.solution.iter_mut() {
             let idx = path.len() - 1;
             path[idx].duration.1 = end_time
         }
-    }
-
-    fn find_cost(&mut self) {
-        let path = &self.solution[0];
-        self.cost = path[path.len() - 1].duration.1;
+        self.cost = end_time;
     }
 
     fn find_conflicts(&mut self) {
         let mut state = Vec::with_capacity(self.solution.len());
         let end_time = self.cost;
-        for path in &self.solution {
+        for (uid, path) in &self.solution {
             state.push(InternalStateData {
-                uid: path[0].location.origin,
+                uid: *uid,
                 path_idx: 0,
                 location: path[0].location,
                 duration: path[0].duration,
@@ -122,7 +110,7 @@ impl CBS<'_> {
         }
         for time in 1..=end_time {
             let mut moved = vec![false; state.len()];
-            for (i, path) in self.solution.iter().enumerate() {
+            for (i, (_, path)) in self.solution.iter().enumerate() {
                 let idx = state[i].path_idx;
                 if time > path[idx].duration.1 && idx < path.len() - 1 {
                     state[i].location = path[idx + 1].location;
@@ -187,11 +175,10 @@ impl CBS<'_> {
         explorations
     }
 
-    fn change_path(&mut self, path: Path) {
-        for (idx, old_path) in self.solution.iter().enumerate() {
-            if path[0].location == old_path[0].location {
-                self.solution[idx] = path;
-                break;
+    fn change_path(&mut self, uid: Pair, _path: Path) {
+        for (_idx, (old_uid, _old_path)) in self.solution.iter().enumerate() {
+            if uid == *old_uid {
+                todo!();
             }
         }
     }
@@ -302,7 +289,6 @@ fn update_cbs(mut cbs: CBS, constraint: Constraint, path: Path) -> CBS {
     cbs.constraints.push(constraint);
     cbs.change_path(path);
     cbs.extend_paths();
-    cbs.find_cost();
     cbs
 }
 
@@ -355,7 +341,7 @@ fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
         let children = expand_node(node.clone());
         for child in children {
             if child.conflicts.is_empty() {
-                return child.solution;
+                return child.solution.into_iter().map(|(_, v)| v).collect();
             } else {
                 open.push(child);
             }

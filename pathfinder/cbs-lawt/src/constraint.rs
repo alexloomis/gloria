@@ -70,13 +70,12 @@ impl Specification {
     fn adapt_start(&mut self, unit_state: UnitState) {
         for constraint in &self.constraints {
             if let Constraint::Occupy(state) = constraint {
-                if state.uid == self.uid {
-                    if state.duration.0 <= unit_state.duration.0
-                        && self.start_time < state.duration.0
-                    {
-                        self.start_time = state.duration.0;
-                        self.start_cell = state.location.origin;
-                    }
+                if state.uid == self.uid
+                    && state.duration.0 <= unit_state.duration.0
+                    && self.start_time < state.duration.0
+                {
+                    self.start_time = state.duration.0;
+                    self.start_cell = state.location.origin;
                 }
             }
         }
@@ -85,17 +84,15 @@ impl Specification {
     fn adapt_end(&mut self, unit_state: UnitState) {
         for constraint in &self.constraints {
             if let Constraint::Occupy(state) = constraint {
-                if state.uid == self.uid {
-                    if unit_state.duration.1 <= state.duration.1 {
-                        if let Some(time) = self.end_time {
-                            if state.duration.1 < time {
-                                self.end_time = Some(state.duration.1);
-                                self.end_cell = Some(state.location.origin);
-                            }
-                        } else {
+                if state.uid == self.uid && unit_state.duration.1 <= state.duration.1 {
+                    if let Some(time) = self.end_time {
+                        if state.duration.1 < time {
                             self.end_time = Some(state.duration.1);
                             self.end_cell = Some(state.location.origin);
                         }
+                    } else {
+                        self.end_time = Some(state.duration.1);
+                        self.end_cell = Some(state.location.origin);
                     }
                 }
             }

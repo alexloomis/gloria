@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::ops;
+use std::{ops, path};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Pair(pub usize, pub usize);
@@ -118,3 +118,30 @@ pub struct UnitState {
 }
 
 pub type Path = Vec<UnitState>;
+
+// Assumes patch's first state has a duration of 1
+pub fn patch_path(path: Path, mut patch: Path) -> Path {
+    let mut new_path = Vec::with_capacity(path.len() + patch.len());
+    let start_time = patch[0].duration.0;
+    let end_time = patch[patch.len() - 1].duration.1;
+    let overlaps = |state: UnitState| state.duration.0 > start_time && state.duration.1 <= end_time;
+    let overlaps_end =
+        |state: UnitState| state.duration.0 <= end_time && state.duration.1 > end_time;
+    for state in path {
+        if overlaps_end(state) {
+            for time in (end_time + 1)..=state.duration.1 {
+                let wait = UnitState {
+                    uid: state.uid,
+                    location: state.location,
+                    duration: Pair(time, time),
+                };
+                new_path.push(wait);
+            }
+        } else if !overlaps(state) {
+            new_path.push(state);
+        }
+    }
+    new_path.append(&mut patch);
+    new_path.sort();
+    new_path
+}
