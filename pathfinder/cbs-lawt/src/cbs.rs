@@ -281,16 +281,22 @@ fn greedy_choices(explorations: Vec<Exploration>) -> Vec<Exploration> {
 }
 
 fn update_cbs(mut cbs: CBS, constraint: Constraint, path: Path) -> CBS {
-    if cbs.constraints.contains(&constraint) {
-        panic!("duplicate constraint!");
-    }
+    //if cbs.constraints.contains(&constraint) {
+    //    println!("duplicate constraint!");
+    //    println!("old constraints: {:?}", cbs.constraints);
+    //    println!("new constraint: {constraint:?}");
+    //    println!("old path:");
+    //    print_path(&cbs.solution[&constraint.uid()]);
+    //    println!("new path:");
+    //    print_path(&path);
+    //    panic!();
+    //}
     cbs.constraints.push(constraint);
     cbs.change_path(constraint.uid(), path);
     cbs.extend_paths();
     cbs
 }
 
-// TODO: fix bug: currently recieves partial paths
 fn expand_exploration(cbs: CBS, exploration: Exploration) -> Vec<CBS> {
     let mut out = Vec::with_capacity(exploration.constraints.len()); // with_capacity(2);
     for (idx, solution) in exploration.solutions.into_iter().enumerate() {
@@ -330,7 +336,7 @@ fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
     open.push(cbs);
     let mut i = 0;
     loop {
-        println!("loop {i}");
+        //println!("loop {i}");
         i += 1;
         let node = match open.pop() {
             None => panic!("Exhausted states. Should be impossible."),
@@ -343,10 +349,10 @@ fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
             } else {
                 open.push(child);
             }
-            println!();
+            //println!();
         }
-        let mut s = String::new();
-        let _ = io::stdin().read_line(&mut s);
+        //let mut s = String::new();
+        //let _ = io::stdin().read_line(&mut s);
     }
 }
 

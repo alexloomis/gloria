@@ -49,12 +49,10 @@ impl Specification {
             start_time: 0,
             end_cell: None,
             end_time: None,
-            // TODO: ensure all UIDs match self.uid
             constraints: Vec::new(),
         }
     }
 
-    // TODO: Occupy should generate then join two new paths
     pub fn create(constraint: Constraint, constraints: &[Constraint]) -> Vec<Specification> {
         let mut spec = Specification::new(constraint.uid());
         spec.constraints = constraints.to_vec();
@@ -65,8 +63,6 @@ impl Specification {
         specs
     }
 
-    // TODO: think carefully about how this works with overlaps,
-    // and what it means in terms of gluing paths together
     fn adapt_start(&mut self, unit_state: UnitState) {
         for constraint in &self.constraints {
             if let Constraint::Occupy(state) = constraint {

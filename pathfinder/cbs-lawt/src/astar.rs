@@ -62,11 +62,13 @@ impl Debug for ScoredCell {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "({}, {}) × ({}, {})",
+            "({}, {}) × ({}, {}) $ {}\n  prev: {:?}",
             self.location().origin.0,
             self.location().origin.1,
             self.duration().0,
-            self.duration().1
+            self.duration().1,
+            self.cost,
+            self.prev
         )
     }
 }
@@ -82,9 +84,7 @@ fn reconstruct_path(last: ScoredCell) -> Path {
     path.push(last.unit);
     let mut prev = Rc::new(last);
     while let Some(scored_cell) = &prev.prev {
-        if prev.location() != scored_cell.location() {
-            path.push(scored_cell.unit);
-        }
+        path.push(scored_cell.unit);
         prev = scored_cell.clone();
     }
     path.reverse();
@@ -173,6 +173,14 @@ impl AStar {
                 }
             }
         }
+        //for s in &succ {
+        //    if s.duration().0 != sc.duration().1 + 1 {
+        //        println!("bad successor!");
+        //        println!("from {sc:?}");
+        //        println!("to {s:?}");
+        //        panic!();
+        //    }
+        //}
         succ
     }
 
@@ -251,7 +259,9 @@ impl AStar {
                             specs.end_time,
                             &specs.constraints,
                         ) {
+                            //println!("{successor:?}");
                             let path = reconstruct_path(successor);
+                            //check_path_times(&path);
                             return Some(path);
                         }
                         open.push(-(successor.cost as i64), successor);
