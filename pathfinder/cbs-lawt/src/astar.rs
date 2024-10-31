@@ -1,11 +1,19 @@
-use crate::constraint::*;
-use crate::grid::Grid;
 use crate::prelude::*;
-use crate::terrain::Terrain;
 use radix_heap::RadixHeapMap;
 use std::cmp::min;
 use std::fmt::Debug;
 use std::rc::Rc;
+
+pub mod constraint;
+pub mod grid;
+pub mod terrain;
+
+pub use constraint::*;
+pub use grid::Grid;
+pub use terrain::Terrain;
+
+#[cfg(test)]
+mod tests;
 
 #[derive(Clone)]
 pub struct ScoredCell {

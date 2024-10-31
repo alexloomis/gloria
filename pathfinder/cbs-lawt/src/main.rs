@@ -1,40 +1,12 @@
 // samply record ./path/to/bin to profile
 #![allow(unused)]
-use cbs_lawt::astar::{self, AStar};
+
+use cbs_lawt::astar::{AStar, Grid, Specification, Terrain};
 use cbs_lawt::cbs::{solve_mapf, CBS};
-use cbs_lawt::constraint::Specification;
-use cbs_lawt::grid::Grid;
 use cbs_lawt::prelude::{Pair, Path};
-use cbs_lawt::terrain::Terrain;
 use rand::Rng;
 
 const GRID_CONST: usize = 15;
-
-fn bottleneck_grid_0() -> Grid<Option<usize>> {
-    let mut grid: Grid<Option<usize>> = Grid::init(Pair(2, 2), Some(1));
-    grid[Pair(0, 1)] = None;
-    grid[Pair(2, 1)] = None;
-    grid
-}
-
-fn bottleneck_terrain_0() -> Terrain {
-    Terrain::init(bottleneck_grid_0(), Pair(0, 0))
-}
-
-fn bottleneck_astar_0() -> AStar {
-    let destinations = vec![Pair(0, 2), Pair(2, 2)];
-    AStar::init(bottleneck_terrain_0(), destinations)
-}
-
-fn main() {
-    let astar = bottleneck_astar_0();
-    let origins = vec![Pair(0, 0), Pair(2, 0)];
-    let solution = solve_mapf(&astar, &origins);
-    for path in solution {
-        draw_with_paths(&astar, vec![path]);
-        println!()
-    }
-}
 
 fn formation(size: Pair, spread: usize, offset: Pair) -> Vec<Pair> {
     let mut out = Vec::with_capacity(size.0 * size.1);
@@ -111,79 +83,14 @@ fn draw_with_paths(astar: &AStar, paths: Vec<Path>) {
     }
 }
 
-//fn main() {
-//    let astar = test_astar();
-//    let origins = formation(Pair(1, 5), 2, Pair(3, 2));
-//    let solution = solve_mapf(&astar, &origins);
-//    for path in solution {
-//        draw_with_paths(&astar, vec![path]);
-//    }
-//}
-
-//fn main() {
-//    let astar = baby_astar();
-//    let mut rng = rand::thread_rng();
-//    for _ in 0..10 {
-//        let start_cell = Pair(rng.gen_range(0..GRID_CONST), rng.gen_range(0..GRID_CONST));
-//        let end_cell = if rng.gen_bool(0.5) {
-//            Some(Pair(
-//                rng.gen_range(0..GRID_CONST),
-//                rng.gen_range(0..GRID_CONST),
-//            ))
-//        } else {
-//            None
-//        };
-//        let start_time = rng.gen_range(0..10);
-//        let end_time = None;
-//        let uid = start_cell;
-//        let constraints = Vec::new();
-//        let specs = Specification {
-//            uid,
-//            start_cell,
-//            start_time,
-//            end_cell,
-//            end_time,
-//            constraints,
-//        };
-//        astar.astar(specs);
-//    }
-//}
-
-//fn main() {
-//    let astar = test_astar();
-//    let mut rng = rand::thread_rng();
-//    for _ in 0..10_000 {
-//        let start_cell = Pair(rng.gen_range(10..40), rng.gen_range(10..40));
-//        let end_cell = if rng.gen_bool(0.5) {
-//            Some(Pair(rng.gen_range(10..40), rng.gen_range(10..40)))
-//        } else {
-//            None
-//        };
-//        let start_time = rng.gen_range(0..10);
-//        let end_time = if rng.gen_bool(0.5) {
-//            Some(start_time + rng.gen_range(50..100))
-//        } else {
-//            None
-//        };
-//        let uid = start_cell;
-//        let constraints = Vec::new();
-//        let spec = Specification {
-//            uid,
-//            start_cell,
-//            start_time,
-//            end_cell,
-//            end_time,
-//            constraints,
-//        };
-//        //println!("Searching for path from {start_cell:?} to {end_cell:?}");
-//        //println!("Path should span from t = {start_time} to {end_time:?}");
-//        let path = astar.astar(spec);
-//        //match path {
-//        //    None => println!("Path not found"),
-//        //    Some(p) => {
-//        //        println!("Path found:");
-//        //        draw_with_paths(&astar, vec![p]);
-//        //    }
-//        //}
-//    }
-//}
+fn main() {
+    for i in 0..1_000 {
+        println!("test {i}");
+        let astar = test_astar();
+        let origins = formation(Pair(1, 5), 2, Pair(3, 2));
+        let solution: Vec<Path> = solve_mapf(&astar, &origins).into_values().collect();
+        for path in solution {
+            draw_with_paths(&astar, vec![path]);
+        }
+    }
+}

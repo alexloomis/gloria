@@ -1,17 +1,12 @@
-use crate::astar::AStar;
-use crate::constraint::*;
+use crate::astar::{AStar, Constraint, Specification};
+use crate::conflict::{find_conflicts, Conflict};
 use crate::prelude::*;
-use std::collections::BinaryHeap;
-use std::collections::HashMap;
-use std::io;
+use std::collections::{BinaryHeap, HashMap};
 use std::ptr::eq as ptr_eq;
 
-struct InternalStateData {
-    uid: Pair,
-    path_idx: usize,
-    location: Rect,
-    duration: Pair,
-}
+mod exploration;
+
+use exploration::*;
 
 #[derive(Clone)]
 pub struct CBS<'a> {
@@ -98,48 +93,7 @@ impl CBS<'_> {
     }
 
     fn find_conflicts(&mut self) {
-        let mut state = Vec::with_capacity(self.solution.len());
-        let end_time = self.cost;
-        for (uid, path) in &self.solution {
-            state.push(InternalStateData {
-                uid: *uid,
-                path_idx: 0,
-                location: path[0].location,
-                duration: path[0].duration,
-            });
-        }
-        for time in 1..=end_time {
-            let mut moved = vec![false; state.len()];
-            for (i, (_, path)) in self.solution.iter().enumerate() {
-                let idx = state[i].path_idx;
-                if time > path[idx].duration.1 && idx < path.len() - 1 {
-                    state[i].location = path[idx + 1].location;
-                    state[i].duration = path[idx + 1].duration;
-                    state[i].path_idx += 1;
-                    moved[i] = true;
-                }
-            }
-            // Check for conflicts
-            for (i, i_moved) in moved.iter().enumerate() {
-                for (j, j_moved) in moved.iter().enumerate().skip(i + 1) {
-                    let intersects = state[i].location.intersects(state[j].location);
-                    let includes_moved = *i_moved || *j_moved;
-                    if intersects && includes_moved {
-                        let state_i = UnitState {
-                            uid: state[i].uid,
-                            location: state[i].location,
-                            duration: state[i].duration,
-                        };
-                        let state_j = UnitState {
-                            uid: state[j].uid,
-                            location: state[j].location,
-                            duration: state[j].duration,
-                        };
-                        self.conflicts.push(Conflict(state_i, state_j));
-                    }
-                }
-            }
-        }
+        self.conflicts = find_conflicts(&self.solution);
     }
 
     /// Exploration functions
@@ -189,104 +143,6 @@ impl CBS<'_> {
     fn change_path(&mut self, uid: Pair, path: Path) {
         self.solution.insert(uid, path);
     }
-}
-
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Exploration {
-    conflict: Conflict,
-    constraints: [Constraint; 2],
-    solutions: [Option<Path>; 2],
-}
-
-impl Exploration {
-    fn score(&self) -> usize {
-        self.solutions
-            .iter()
-            .map(|solution| {
-                solution
-                    .as_ref()
-                    .map(|path| path.len())
-                    .unwrap_or(usize::MAX)
-            })
-            .min()
-            .unwrap()
-    }
-
-    fn secondary_score(&self) -> usize {
-        self.solutions
-            .iter()
-            .map(|solution| {
-                solution
-                    .as_ref()
-                    .map(|path| path.len())
-                    .unwrap_or(usize::MAX)
-            })
-            .max()
-            .unwrap()
-    }
-
-    fn uids(&self) -> [Pair; 2] {
-        self.conflict.uids()
-    }
-}
-
-// We want higher primary scores first, with lower secondary breaking ties
-impl Ord for Exploration {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other
-            .score()
-            .cmp(&self.score())
-            .then_with(|| self.secondary_score().cmp(&other.secondary_score()))
-    }
-}
-
-impl PartialOrd for Exploration {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-fn prioritize(explorations: Vec<Exploration>) -> Vec<Exploration> {
-    let mut out: Vec<Exploration> = Vec::with_capacity(explorations.len());
-    for exploration in explorations {
-        if exploration.solutions == [None, None] {
-            continue;
-        }
-        let mut include = true;
-        let mut replace_at = None;
-        for (idx, chosen) in out.iter_mut().enumerate() {
-            if exploration.uids() == chosen.conflict.uids() {
-                if exploration.score() > chosen.score() {
-                    replace_at = Some(idx);
-                } else {
-                    include = false
-                }
-                break;
-            }
-        }
-        if include {
-            match replace_at {
-                Some(idx) => out[idx] = exploration,
-                None => out.push(exploration),
-            }
-        }
-    }
-    out.sort();
-    out
-}
-
-fn greedy_choices(explorations: Vec<Exploration>) -> Vec<Exploration> {
-    let mut out = Vec::with_capacity(explorations.len());
-    let mut seen = Vec::with_capacity(explorations.len() * 2);
-    for exploration in prioritize(explorations) {
-        let uids = exploration.uids();
-        if !(seen.contains(&uids[0]) || seen.contains(&uids[1])) {
-            out.push(exploration);
-            seen.push(uids[0]);
-            seen.push(uids[1]);
-        }
-    }
-    out
 }
 
 fn update_cbs(mut cbs: CBS, constraint: Constraint, path: Path, path_uid: Pair) -> CBS {
@@ -342,42 +198,42 @@ fn expand_node(cbs: CBS) -> Vec<CBS> {
     expand_explorations(cbs, greedy)
 }
 
-fn greedy_with_heuristic(cbs: CBS) -> Vec<Path> {
+fn greedy_with_heuristic(cbs: CBS) -> HashMap<Pair, Vec<UnitState>> {
     let mut open = BinaryHeap::new();
     open.push(cbs);
-    let mut i = 0;
+    //let mut i = 0;
     loop {
-        println!("loop {i}");
-        i += 1;
+        //println!("loop {i}");
+        //i += 1;
         let node = match open.pop() {
             None => panic!("Exhausted states. Should be impossible."),
             Some(new_node) => new_node,
         };
-        println!("from constraints {:?}", node.constraints);
-        println!("have solution");
-        print_paths(&node.solution);
-        println!("with conflicts {:?}", node.conflicts);
-        println!();
+        //println!("from constraints {:?}", node.constraints);
+        //println!("have solution");
+        //print_paths(&node.solution);
+        //println!("with conflicts {:?}", node.conflicts);
+        //println!();
         let children = expand_node(node);
         for child in children {
-            println!("- with constraints {:?}", child.constraints);
-            println!("- made solution");
-            print_paths(&child.solution);
-            println!("- with conflicts {:?}", child.conflicts);
-            println!();
+            //println!("- with constraints {:?}", child.constraints);
+            //println!("- made solution");
+            //print_paths(&child.solution);
+            //println!("- with conflicts {:?}", child.conflicts);
+            //println!();
             if child.conflicts.is_empty() {
-                return child.solution.into_values().collect();
+                return child.solution;
             } else {
                 open.push(child);
             }
             //println!();
         }
-        let mut s = String::new();
-        let _ = io::stdin().read_line(&mut s);
+        //let mut s = String::new();
+        //let _ = io::stdin().read_line(&mut s);
     }
 }
 
-pub fn solve_mapf(mapf: &AStar, origins: &[Pair]) -> Vec<Path> {
+pub fn solve_mapf(mapf: &AStar, origins: &[Pair]) -> HashMap<Pair, Vec<UnitState>> {
     let cbs = CBS::init(mapf, origins);
     greedy_with_heuristic(cbs)
 }
