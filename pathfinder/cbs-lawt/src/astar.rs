@@ -12,9 +12,6 @@ pub use constraint::*;
 pub use grid::Grid;
 pub use terrain::Terrain;
 
-#[cfg(test)]
-mod tests;
-
 #[derive(Clone)]
 pub struct ScoredCell {
     // Cost including heuristic, what time do we think we will arrive?

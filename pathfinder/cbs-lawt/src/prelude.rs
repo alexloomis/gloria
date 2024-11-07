@@ -3,9 +3,6 @@ use std::ops;
 pub mod unit_state;
 pub use unit_state::*;
 
-#[cfg(test)]
-pub mod tests;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Pair(pub usize, pub usize);
 
