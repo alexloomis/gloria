@@ -22,7 +22,9 @@ impl Terrain {
 
     pub fn init(grid: Grid<Option<usize>>, unit_extent: Pair) -> Terrain {
         let mut terrain = Terrain::new(grid, unit_extent);
+        println!("{terrain:?}");
         terrain.find_costs();
+        println!("{terrain:?}");
         terrain.all_distances();
         terrain
     }
@@ -31,7 +33,7 @@ impl Terrain {
     pub fn extent(&self) -> Pair {
         Pair(
             self.base_costs.extent().0 - self.unit_extent.0,
-            self.base_costs.extent().0 - self.unit_extent.1,
+            self.base_costs.extent().1 - self.unit_extent.1,
         )
     }
 
@@ -68,7 +70,9 @@ impl Terrain {
     fn find_costs(&mut self) {
         let mut costs = Grid::init(self.extent(), None);
         for (cell, val) in costs.indexed_iter_mut() {
+            println!("cost at {:?}", cell);
             *val = self.compute_cost(cell.extend(self.unit_extent));
+            println!("is {:?}", val);
         }
         self.costs = costs;
     }

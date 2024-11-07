@@ -20,7 +20,7 @@ impl<T> Grid<T> {
 
     // Defined to agree with Ord for Pair
     fn usize_to_pair_(extent: Pair, index: usize) -> Pair {
-        Pair(index / (extent.0 + 1), index % (extent.0 + 1))
+        Pair(index / (extent.1 + 1), index % (extent.1 + 1))
     }
 
     pub fn usize_to_pair(&self, index: usize) -> Pair {
