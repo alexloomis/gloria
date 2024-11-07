@@ -99,7 +99,7 @@ fn reconstruct_path(last: ScoredCell) -> Path {
     path
 }
 
-// #[derive(PartialEq, Eq)]
+#[derive(Debug)]
 pub struct AStar {
     pub terrain: Terrain,
     pub destinations: Vec<Pair>,

@@ -2,6 +2,7 @@ use crate::astar::Grid;
 use crate::prelude::*;
 use radix_heap::RadixHeapMap;
 
+#[derive(Debug)]
 pub struct Terrain {
     base_costs: Grid<Option<usize>>,
     unit_extent: Pair,
@@ -10,17 +11,17 @@ pub struct Terrain {
 }
 
 impl Terrain {
-    fn new(costs: Grid<Option<usize>>, extent: Pair) -> Terrain {
+    fn new(costs: Grid<Option<usize>>, unit_extent: Pair) -> Terrain {
         Terrain {
             base_costs: costs,
-            unit_extent: extent,
+            unit_extent,
             costs: Grid::init(Pair(0, 0), None),
             distances: Grid::init_clone(Pair(0, 0), Grid::init(Pair(0, 0), None)),
         }
     }
 
-    pub fn init(costs: Grid<Option<usize>>, extent: Pair) -> Terrain {
-        let mut terrain = Terrain::new(costs, extent);
+    pub fn init(grid: Grid<Option<usize>>, unit_extent: Pair) -> Terrain {
+        let mut terrain = Terrain::new(grid, unit_extent);
         terrain.find_costs();
         terrain.all_distances();
         terrain

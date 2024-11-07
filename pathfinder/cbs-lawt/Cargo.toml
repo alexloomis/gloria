@@ -6,10 +6,12 @@ authors = ["Alex Loomis <alexandreloomis@gmail.com>"]
 description = "Pathfinding for a game."
 
 [dependencies]
-# grid = "0.15.0"
-# coz = "0.1.3"
-rand = "0.8.5"
+ntest = "0.9.3"
+proptest = "1.5.0"
 radix-heap = "0.4.2"
+rand = "0.8.5"
+
+[dev-dependencies]
 
 [profile.release]
 debug = 1

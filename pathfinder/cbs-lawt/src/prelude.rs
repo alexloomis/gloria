@@ -41,12 +41,6 @@ impl Pair {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct CellInfo {
-    pub cost: usize,
-    pub blocked: bool,
-}
-
 // A rect with origin (0,0) and extent (x,y) includes all points (a,b) with 0 <= a <= x and 0 <= b <= y.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub struct Rect {
