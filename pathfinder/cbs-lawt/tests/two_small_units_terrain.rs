@@ -46,3 +46,25 @@ fn correct_lengths() {
         .all(|path| path[path.len() - 1].duration.1 == 2);
     assert!(takes_2);
 }
+
+#[test]
+#[timeout(1000)]
+fn many_correct_lengths() {
+    let mut errors = 0;
+    let mut example = None;
+    for _ in 0..10_000 {
+        let solution = find_solution();
+        let takes_2 = solution
+            .values()
+            .all(|path| path[path.len() - 1].duration.1 == 2);
+        if !takes_2 {
+            errors += 1;
+            example = Some(solution);
+        }
+    }
+    if let Some(solution) = example {
+        println!("Failed {errors} times.");
+        print_paths(&solution);
+    }
+    assert!(errors == 0);
+}

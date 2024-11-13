@@ -44,16 +44,16 @@ impl PartialEq for ScoredCell {
 
 impl Eq for ScoredCell {}
 
-// Lowest cost has highest priority, then earliest departure, then earliest arrival, then we don't
-// really care, so we just do by cell.
+// Lowest cost has highest priority, then latest departure, then latest arrival, then we don't
+// really care, so we just do by cell. Using a max heap, so we reverse the ordering.
 impl Ord for ScoredCell {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other
-            .cost
-            .cmp(&self.cost)
+        self.cost
+            .cmp(&other.cost)
             .then_with(|| other.duration().1.cmp(&self.duration().1))
             .then_with(|| other.duration().0.cmp(&self.duration().0))
             .then_with(|| other.location().cmp(&self.location()))
+            .reverse()
     }
 }
 
@@ -178,14 +178,6 @@ impl AStar {
                 }
             }
         }
-        //for s in &succ {
-        //    if s.duration().0 != sc.duration().1 + 1 {
-        //        println!("bad successor!");
-        //        println!("from {sc:?}");
-        //        println!("to {s:?}");
-        //        panic!();
-        //    }
-        //}
         succ
     }
 
@@ -215,6 +207,68 @@ impl AStar {
     }
 
     pub fn astar(&self, specs: Specification) -> Option<Path> {
+        let initial = UnitState {
+            uid: specs.uid,
+            location: specs.start_cell.extend(self.terrain.unit_extent()),
+            duration: Pair(specs.start_time, specs.start_time),
+        };
+        let heuristic = match specs.end_cell {
+            Some(cell) => &self.terrain.distances()[cell],
+            None => &self.heuristic,
+        };
+
+        // Are we too far away?
+        match heuristic[specs.start_cell] {
+            None => {
+                return None;
+            }
+            Some(estimate) => {
+                if let Some(time) = specs.end_time {
+                    if specs.start_time + estimate > time {
+                        return None;
+                    }
+                }
+            }
+        }
+
+        let mut open = RadixHeapMap::new_at(0);
+        let sc = ScoredCell {
+            cost: 0,
+            unit: initial,
+            prev: None,
+        };
+        // May cause an issue if cost > 2^32
+        open.push(-(sc.cost as i64), sc);
+
+        loop {
+            let (_, current) = match open.pop() {
+                None => {
+                    return None;
+                }
+                Some(sc) => sc,
+            };
+            if AStar::satisfies_cutoff(&current, specs.end_time) {
+                for successor in self.successors(current.clone(), heuristic, &specs.constraints) {
+                    if open_allows_candidate(&successor, &open) {
+                        if self.arrived(
+                            successor.unit,
+                            specs.end_cell,
+                            specs.end_time,
+                            &specs.constraints,
+                        ) {
+                            //println!("{successor:?}");
+                            let path = reconstruct_path(successor);
+                            //check_path_times(&path);
+                            return Some(path);
+                        }
+                        open.push(-(successor.cost as i64), successor);
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn all_paths(&self, origins: &[Pair], length: usize) -> Vec<Path> {
         let initial = UnitState {
             uid: specs.uid,
             location: specs.start_cell.extend(self.terrain.unit_extent()),

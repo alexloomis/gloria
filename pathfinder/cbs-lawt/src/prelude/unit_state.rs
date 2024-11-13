@@ -1,6 +1,8 @@
 use crate::prelude::*;
+use core::panic;
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UnitState {
@@ -26,12 +28,30 @@ impl PartialOrd for UnitState {
 
 pub type Path = Vec<UnitState>;
 
+fn path_ok(path: &Path) -> bool {
+    if path.is_empty() {
+        return false;
+    }
+    let mut last_departure = 0;
+    for state in path.iter().skip(1) {
+        if state.duration.0 != last_departure + 1 {
+            return false;
+        }
+        if state.duration.0 > state.duration.1 {
+            return false;
+        }
+        last_departure = state.duration.1
+    }
+    true
+}
+
 // Assumes patch's first state has a duration of 1
-pub fn patch_path(path: Path, mut patch: Path) -> Path {
-    //println!("Patching:");
-    //print_path(&path);
-    //println!("with");
-    //print_path(&patch);
+// TODO: this seems to be where the bug is coming from
+pub fn patch_path_old(path: Path, mut patch: Path) -> Path {
+    println!("Patching:");
+    print_path(&path);
+    println!("with");
+    print_path(&patch);
     let mut new_path = Vec::with_capacity(path.len() + patch.len());
     let start_time = patch[0].duration.0;
     let end_time = patch[patch.len() - 1].duration.1;
@@ -55,10 +75,29 @@ pub fn patch_path(path: Path, mut patch: Path) -> Path {
     patch.remove(0);
     new_path.append(&mut patch);
     new_path.sort();
-    //println!("resulting in");
-    //print_path(&new_path);
-    //println!();
+    println!("resulting in");
+    print_path(&new_path);
+    if !path_ok(&new_path) {
+        println!("Invalid path created!");
+        panic!();
+    }
+    println!();
     new_path
+}
+
+// TODO: find out why patches are waiting (ie (1,1) (2,2) (3,3) for times)
+// rather than reflecting the movement cost (ie (1,3) for times).
+// Probably caused by giving A* the start of the duration rather than the end,
+// probably also the cause of the bug.
+// Clarifying how patch is constructed and what its invariants are
+// will make it possible to rewrite this function clearly.
+pub fn patch_path(path: Path, mut patch: Path) -> Path {
+    // The zeroth element of the patch is the already-existing state it left from.
+    patch.remove(0);
+    let patch_start = patch[0].duration.0;
+    // If we arrived at the same time at the same place as previously
+    let patch_end = patch[patch.len() - 1].duration.1;
+    path
 }
 
 pub fn print_path(path: &Path) {

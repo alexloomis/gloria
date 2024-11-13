@@ -1,0 +1,144 @@
+@article{sharon_2015,
+  title = {Conflict-based search for optimal multi-agent pathfinding},
+  journal = {Artificial Intelligence},
+  volume = {219},
+  pages = {40-66},
+  year = {2015},
+  issn = {0004-3702},
+  doi = {https://doi.org/10.1016/j.artint.2014.11.006},
+  url = {https://www.sciencedirect.com/science/article/pii/S0004370214001386},
+  author = {Guni Sharon and Roni Stern and Ariel Felner and Nathan R. Sturtevant
+            },
+  keywords = {Heuristic search, Multi-agent, Pathfinding},
+  abstract = {In the multi-agent pathfinding problem (MAPF) we are given a set
+              of agents each with respective start and goal positions. The task
+              is to find paths for all agents while avoiding collisions. Most
+              previous work on solving this problem optimally has treated the
+              individual agents as a single ‘joint agent’ and then applied
+              single-agent search variants of the A* algorithm. In this paper we
+              present the Conflict Based Search (CBS) a new optimal multi-agent
+              pathfinding algorithm. CBS is a two-level algorithm that does not
+              convert the problem into the single ‘joint agent’ model. At the
+              high level, a search is performed on a Conflict Tree (CT) which is
+              a tree based on conflicts between individual agents. Each node in
+              the CT represents a set of constraints on the motion of the agents.
+              At the low level, fast single-agent searches are performed to
+              satisfy the constraints imposed by the high level CT node. In many
+              cases this two-level formulation enables CBS to examine fewer
+              states than A* while still maintaining optimality. We analyze CBS
+              and show its benefits and drawbacks. Additionally we present the
+              Meta-Agent CBS (MA-CBS) algorithm. MA-CBS is a generalization of
+              CBS. Unlike basic CBS, MA-CBS is not restricted to single-agent
+              searches at the low level. Instead, MA-CBS allows agents to be
+              merged into small groups of joint agents. This mitigates some of
+              the drawbacks of basic CBS and further improves performance. In
+              fact, MA-CBS is a framework that can be built on top of any optimal
+              and complete MAPF solver in order to enhance its performance.
+              Experimental results on various problems show a speedup of up to an
+              order of magnitude over previous approaches.},
+}
+
+@article{felner_2018,
+  author = {Felner, Ariel and Li, Jiaoyang and Boyarski, Eli and Ma, Hang and
+            Cohen, Liron and Kumar, T. and Koenig, Sven},
+  year = {2018},
+  month = {06},
+  pages = {83-87},
+  title = {Adding Heuristics to Conflict-Based Search for Multi-Agent Path
+           Finding},
+  volume = {28},
+  journal = {Proceedings of the International Conference on Automated Planning
+             and Scheduling},
+  doi = {10.1609/icaps.v28i1.13883},
+  abstract = {Conflict-Based Search (CBS) and its enhancements are among the
+              strongest algorithms for the multi-agent path-finding problem.
+              However,existing variants of CBS do not use any heuristics that
+              estimate future work. In this paper, we introduce different
+              admissible heuristics for CBS by aggregating cardinal conflicts
+              among agents. In our experiments, CBS with these heuristics
+              outperforms previous state-of-the-art CBS variants by up to a
+              factor of five.},
+}
+
+@inproceedings{li_2019,
+  author = {Jiaoyang Li and Daniel Harabor and Peter J. Stuckey and Hang Ma and
+            Sven Koenig},
+  title = {Disjoint Splitting for Multi-Agent Path Finding with Conflict-Based
+           Search},
+  booktitle = {Proceedings of the International Conference on Automated Planning
+               and Scheduling (ICAPS)},
+  pages = {279--283},
+  year = {2019},
+  abstract = {Multi-Agent Path Finding (MAPF) is the planning problem of finding
+              collision-free paths for a team of agents. We focus on
+              Conflict-Based Search (CBS), a two-level tree-search
+              state-of-the-art MAPF algorithm. The standard splitting strategy
+              used by CBS is not disjoint, i.e., when it splits a problem into
+              two subproblems, some solutions are shared by both subproblems,
+              which can create duplication of search effort. In this paper, we
+              demonstrate how to improve CBS with disjoint splitting and how to
+              modify the low-level search of CBS to take maximal advantage of it.
+              Experiments show that disjoint splitting increases the success
+              rates and speeds of CBS and its variants by up to 2 orders of
+              magnitude.},
+}
+
+@article{zhang_2022,
+  title = {Multi-agent path finding with mutex propagation},
+  journal = {Artificial Intelligence},
+  volume = {311},
+  pages = {103766},
+  year = {2022},
+  issn = {0004-3702},
+  doi = {https://doi.org/10.1016/j.artint.2022.103766},
+  url = {https://www.sciencedirect.com/science/article/pii/S0004370222001060},
+  author = {Han Zhang and Jiaoyang Li and Pavel Surynek and T.K. {Satish Kumar}
+            and Sven Koenig},
+  keywords = {Heuristic search, Multi-agent path finding, Satisfiability solving
+              },
+  abstract = {Mutex propagation is a form of efficient constraint propagation
+              popularly used in AI planning to tightly approximate the reachable
+              states from a given state. We utilize this idea in the context of
+              Multi-Agent Path Finding (MAPF). When adapted to MAPF, mutex
+              propagation provides stronger constraints for conflict resolution
+              in CBS, a popular optimal search-based MAPF algorithm, as well as
+              in MDD-SAT, an optimal satisfiability-based MAPF algorithm. Mutex
+              propagation provides CBS with the ability to break symmetries in
+              MAPF and provides MDD-SAT with the ability to make stronger
+              inferences than unit propagation. While existing work identifies a
+              limited form of symmetries and requires the manual design of
+              symmetry-breaking constraints, mutex propagation is more general
+              and allows for the automated design of symmetry-breaking
+              constraints. Our experimental results show that CBS with mutex
+              propagation is capable of outperforming CBSH-RCT, a
+              state-of-the-art variant of CBS, with respect to the success rate.
+              We also show that MDD-SAT with mutex propagation often performs
+              better than MDD-SAT with respect to the success rate.},
+}
+
+@article{zhang_2022_large,
+  author = {Zhang, Han and Li, Yutong and Li, Jiaoyang and Kumar, T. and Koenig,
+            Sven},
+  year = {2022},
+  month = {07},
+  pages = {249-253},
+  title = {Mutex Propagation in Multi-Agent Path Finding for Large Agents},
+  volume = {15},
+  journal = {Proceedings of the International Symposium on Combinatorial Search},
+  doi = {10.1609/socs.v15i1.21776},
+  abstract = { Mutex propagation and its concomitant symmetry-breaking
+              techniques have proven useful in Multi-Agent Path Finding (MAPF)
+              with point agents. In this paper, we show that they can be easily
+              generalized to richer MAPF problems. In particular, we demonstrate
+              their application to MAPF with ``Large'' Agents (LA-MAPF). Here,
+              agents can occupy multiple points at the same time according to
+              their fixed shapes and sizes. While existing rule-based
+              symmetry-breaking techniques are difficult to generalize from point
+              agents to large agents, mutex-based symmetry-breaking techniques
+              can be generalized easily. In a Conflict-Based Search (CBS)
+              framework for LA-MAPF, we also develop a mutex-based
+              conflict-selection strategy to further enhance the efficiency of
+              the search. Through experiments on various maps, we show that our
+              techniques significantly improve MC-CBS, a state-of-the-art optimal
+              LA-MAPF algorithm, in terms of both success rate and runtime.},
+}

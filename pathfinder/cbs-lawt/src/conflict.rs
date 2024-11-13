@@ -1,7 +1,7 @@
 use crate::astar::Constraint;
 use crate::prelude::*;
 use std::cmp::max;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Conflict(pub UnitState, pub UnitState);
@@ -50,3 +50,50 @@ pub fn find_conflicts(paths: &HashMap<Pair, Path>) -> Vec<Conflict> {
     }
     out
 }
+
+//pub fn find_conflicts(paths: &HashMap<Pair, Path>) -> Vec<Conflict> {
+//    print_paths(paths);
+//    let keys: Vec<&Pair> = paths.keys().collect();
+//    let mut out = Vec::new();
+//    let mut state = HashMap::with_capacity(keys.len());
+//    for (uid, _) in paths {
+//        state.insert(uid, 0);
+//    }
+//    let mut time = 0;
+//    while !state.is_empty() {
+//        time += 1;
+//        println!("at t = {time}");
+//        println!("state is {state:?}");
+//        println!();
+//        let mut moved = HashSet::with_capacity(keys.len());
+//        for uid in keys.iter() {
+//            let idx = state[uid];
+//            let s = paths[uid][idx];
+//            if time > s.duration.1 {
+//                if paths[uid].len() > idx + 1 {
+//                    state.insert(*uid, idx + 1);
+//                    moved.insert(uid);
+//                } else {
+//                    state.remove(uid);
+//                }
+//            }
+//        }
+//        // Check for conflicts
+//        for (uid_0, idx_0) in state.iter() {
+//            for (uid_1, idx_1) in state.iter().filter(|(uid, _)| *uid > uid_0) {
+//                let state_0 = paths[uid_0][*idx_0];
+//                let state_1 = paths[uid_1][*idx_1];
+//                let intersects = state_0.location.intersects(state_1.location);
+//                let includes_moved = moved.contains(&uid_0) || moved.contains(&uid_1);
+//                if intersects && includes_moved {
+//                    println!("found conflict between");
+//                    println!("{state_0:?}");
+//                    println!("{state_1:?}");
+//                    println!();
+//                    out.push(Conflict(state_0, state_1));
+//                }
+//            }
+//        }
+//    }
+//    out
+//}

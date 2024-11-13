@@ -2,6 +2,7 @@ use crate::astar::{AStar, Constraint, Specification};
 use crate::conflict::{find_conflicts, Conflict};
 use crate::prelude::*;
 use std::collections::{BinaryHeap, HashMap};
+use std::io;
 use std::ptr::eq as ptr_eq;
 
 mod exploration;
@@ -75,6 +76,7 @@ impl CBS<'_> {
         }
     }
 
+    // TODO: extend as waits, not as a block
     fn extend_paths(&mut self) {
         let mut end_time = 0;
         for path in self.solution.values() {
@@ -209,6 +211,9 @@ fn greedy_with_heuristic(cbs: CBS) -> HashMap<Pair, Vec<UnitState>> {
             None => panic!("Exhausted states. Should be impossible."),
             Some(new_node) => new_node,
         };
+        if node.conflicts.is_empty() {
+            return node.solution;
+        }
         //println!("from constraints {:?}", node.constraints);
         //println!("have solution");
         //print_paths(&node.solution);
@@ -221,11 +226,7 @@ fn greedy_with_heuristic(cbs: CBS) -> HashMap<Pair, Vec<UnitState>> {
             //print_paths(&child.solution);
             //println!("- with conflicts {:?}", child.conflicts);
             //println!();
-            if child.conflicts.is_empty() {
-                return child.solution;
-            } else {
-                open.push(child);
-            }
+            open.push(child);
             //println!();
         }
         //let mut s = String::new();
@@ -233,7 +234,7 @@ fn greedy_with_heuristic(cbs: CBS) -> HashMap<Pair, Vec<UnitState>> {
     }
 }
 
-pub fn solve_mapf(mapf: &AStar, origins: &[Pair]) -> HashMap<Pair, Vec<UnitState>> {
-    let cbs = CBS::init(mapf, origins);
+pub fn solve_mapf(astar: &AStar, origins: &[Pair]) -> HashMap<Pair, Vec<UnitState>> {
+    let cbs = CBS::init(astar, origins);
     greedy_with_heuristic(cbs)
 }

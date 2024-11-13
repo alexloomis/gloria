@@ -1,0 +1,296 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.2 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{nty/global//global/global}
+    \entry{felner_2018}{article}{}
+      \name{author}{7}{}{%
+        {{hash=090820c15422fa559364ad660e9cecbd}{%
+           family={Felner},
+           familyi={F\bibinitperiod},
+           given={Ariel},
+           giveni={A\bibinitperiod}}}%
+        {{hash=3e8ee84b5cf0f6c7813e54088700ce0f}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Jiaoyang},
+           giveni={J\bibinitperiod}}}%
+        {{hash=bb44e6c9dce3dc2638b86e8e9c1e43ac}{%
+           family={Boyarski},
+           familyi={B\bibinitperiod},
+           given={Eli},
+           giveni={E\bibinitperiod}}}%
+        {{hash=bd18c879f9e29c587d042f725f23e5cb}{%
+           family={Ma},
+           familyi={M\bibinitperiod},
+           given={Hang},
+           giveni={H\bibinitperiod}}}%
+        {{hash=0c95e714680d33d0c807a3640affbf33}{%
+           family={Cohen},
+           familyi={C\bibinitperiod},
+           given={Liron},
+           giveni={L\bibinitperiod}}}%
+        {{hash=24c5ad1fd87405708bd68c7dc1b0088b}{%
+           family={Kumar},
+           familyi={K\bibinitperiod},
+           given={T.},
+           giveni={T\bibinitperiod}}}%
+        {{hash=6e0da33fcadd327da8ebc74eea9cafe2}{%
+           family={Koenig},
+           familyi={K\bibinitperiod},
+           given={Sven},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{946729f561ca7c63affdc204da4556de}
+      \strng{fullhash}{65061b91efdf48412d4dfe82ae9703ab}
+      \strng{bibnamehash}{946729f561ca7c63affdc204da4556de}
+      \strng{authorbibnamehash}{946729f561ca7c63affdc204da4556de}
+      \strng{authornamehash}{946729f561ca7c63affdc204da4556de}
+      \strng{authorfullhash}{65061b91efdf48412d4dfe82ae9703ab}
+      \field{sortinit}{F}
+      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Conflict-Based Search (CBS) and its enhancements are among the strongest algorithms for the multi-agent path-finding problem. However,existing variants of CBS do not use any heuristics that estimate future work. In this paper, we introduce different admissible heuristics for CBS by aggregating cardinal conflicts among agents. In our experiments, CBS with these heuristics outperforms previous state-of-the-art CBS variants by up to a factor of five.}
+      \field{journaltitle}{Proceedings of the International Conference on Automated Planning and Scheduling}
+      \field{month}{06}
+      \field{title}{Adding Heuristics to Conflict-Based Search for Multi-Agent Path Finding}
+      \field{volume}{28}
+      \field{year}{2018}
+      \true{nocite}
+      \field{pages}{83\bibrangedash 87}
+      \range{pages}{5}
+      \verb{doi}
+      \verb 10.1609/icaps.v28i1.13883
+      \endverb
+    \endentry
+    \entry{li_2019}{inproceedings}{}
+      \name{author}{5}{}{%
+        {{hash=3e8ee84b5cf0f6c7813e54088700ce0f}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Jiaoyang},
+           giveni={J\bibinitperiod}}}%
+        {{hash=4b8559ef3d0cbaccff4d887de13d1143}{%
+           family={Harabor},
+           familyi={H\bibinitperiod},
+           given={Daniel},
+           giveni={D\bibinitperiod}}}%
+        {{hash=763c041036682c7c20675dab8c437fb0}{%
+           family={Stuckey},
+           familyi={S\bibinitperiod},
+           given={Peter\bibnamedelima J.},
+           giveni={P\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+        {{hash=bd18c879f9e29c587d042f725f23e5cb}{%
+           family={Ma},
+           familyi={M\bibinitperiod},
+           given={Hang},
+           giveni={H\bibinitperiod}}}%
+        {{hash=6e0da33fcadd327da8ebc74eea9cafe2}{%
+           family={Koenig},
+           familyi={K\bibinitperiod},
+           given={Sven},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{f42f1d46ecc43a144818f19d6c2e7ac3}
+      \strng{fullhash}{2c4dc1fdf6449b2cda743a1f61beb2fd}
+      \strng{bibnamehash}{f42f1d46ecc43a144818f19d6c2e7ac3}
+      \strng{authorbibnamehash}{f42f1d46ecc43a144818f19d6c2e7ac3}
+      \strng{authornamehash}{f42f1d46ecc43a144818f19d6c2e7ac3}
+      \strng{authorfullhash}{2c4dc1fdf6449b2cda743a1f61beb2fd}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Multi-Agent Path Finding (MAPF) is the planning problem of finding collision-free paths for a team of agents. We focus on Conflict-Based Search (CBS), a two-level tree-search state-of-the-art MAPF algorithm. The standard splitting strategy used by CBS is not disjoint, i.e., when it splits a problem into two subproblems, some solutions are shared by both subproblems, which can create duplication of search effort. In this paper, we demonstrate how to improve CBS with disjoint splitting and how to modify the low-level search of CBS to take maximal advantage of it. Experiments show that disjoint splitting increases the success rates and speeds of CBS and its variants by up to 2 orders of magnitude.}
+      \field{booktitle}{Proceedings of the International Conference on Automated Planning and Scheduling (ICAPS)}
+      \field{title}{Disjoint Splitting for Multi-Agent Path Finding with Conflict-Based Search}
+      \field{year}{2019}
+      \true{nocite}
+      \field{pages}{279\bibrangedash 283}
+      \range{pages}{5}
+    \endentry
+    \entry{sharon_2015}{article}{}
+      \name{author}{4}{}{%
+        {{hash=d3f7f507c65e0df69895e0fcc44ec820}{%
+           family={Sharon},
+           familyi={S\bibinitperiod},
+           given={Guni},
+           giveni={G\bibinitperiod}}}%
+        {{hash=28a17dd42adfbe88290bb3d370d53070}{%
+           family={Stern},
+           familyi={S\bibinitperiod},
+           given={Roni},
+           giveni={R\bibinitperiod}}}%
+        {{hash=090820c15422fa559364ad660e9cecbd}{%
+           family={Felner},
+           familyi={F\bibinitperiod},
+           given={Ariel},
+           giveni={A\bibinitperiod}}}%
+        {{hash=e088625a70e86d25de784a18261647cd}{%
+           family={Sturtevant},
+           familyi={S\bibinitperiod},
+           given={Nathan\bibnamedelima R.},
+           giveni={N\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+      }
+      \strng{namehash}{6fc246b54310616a4211552c45d976e2}
+      \strng{fullhash}{9004f04355b321a04159df087bb03b2d}
+      \strng{bibnamehash}{6fc246b54310616a4211552c45d976e2}
+      \strng{authorbibnamehash}{6fc246b54310616a4211552c45d976e2}
+      \strng{authornamehash}{6fc246b54310616a4211552c45d976e2}
+      \strng{authorfullhash}{9004f04355b321a04159df087bb03b2d}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{In the multi-agent pathfinding problem (MAPF) we are given a set of agents each with respective start and goal positions. The task is to find paths for all agents while avoiding collisions. Most previous work on solving this problem optimally has treated the individual agents as a single ‘joint agent’ and then applied single-agent search variants of the A* algorithm. In this paper we present the Conflict Based Search (CBS) a new optimal multi-agent pathfinding algorithm. CBS is a two-level algorithm that does not convert the problem into the single ‘joint agent’ model. At the high level, a search is performed on a Conflict Tree (CT) which is a tree based on conflicts between individual agents. Each node in the CT represents a set of constraints on the motion of the agents. At the low level, fast single-agent searches are performed to satisfy the constraints imposed by the high level CT node. In many cases this two-level formulation enables CBS to examine fewer states than A* while still maintaining optimality. We analyze CBS and show its benefits and drawbacks. Additionally we present the Meta-Agent CBS (MA-CBS) algorithm. MA-CBS is a generalization of CBS. Unlike basic CBS, MA-CBS is not restricted to single-agent searches at the low level. Instead, MA-CBS allows agents to be merged into small groups of joint agents. This mitigates some of the drawbacks of basic CBS and further improves performance. In fact, MA-CBS is a framework that can be built on top of any optimal and complete MAPF solver in order to enhance its performance. Experimental results on various problems show a speedup of up to an order of magnitude over previous approaches.}
+      \field{issn}{0004-3702}
+      \field{journaltitle}{Artificial Intelligence}
+      \field{title}{Conflict-based search for optimal multi-agent pathfinding}
+      \field{volume}{219}
+      \field{year}{2015}
+      \true{nocite}
+      \field{pages}{40\bibrangedash 66}
+      \range{pages}{27}
+      \verb{doi}
+      \verb https://doi.org/10.1016/j.artint.2014.11.006
+      \endverb
+      \verb{urlraw}
+      \verb https://www.sciencedirect.com/science/article/pii/S0004370214001386
+      \endverb
+      \verb{url}
+      \verb https://www.sciencedirect.com/science/article/pii/S0004370214001386
+      \endverb
+      \keyw{Heuristic search,Multi-agent,Pathfinding}
+    \endentry
+    \entry{zhang_2022}{article}{}
+      \name{author}{5}{}{%
+        {{hash=e29e2cdbaa50d58d413b689667ace7db}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={Han},
+           giveni={H\bibinitperiod}}}%
+        {{hash=3e8ee84b5cf0f6c7813e54088700ce0f}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Jiaoyang},
+           giveni={J\bibinitperiod}}}%
+        {{hash=45a5a017084496240354bb7436117aa4}{%
+           family={Surynek},
+           familyi={S\bibinitperiod},
+           given={Pavel},
+           giveni={P\bibinitperiod}}}%
+        {{hash=adc6ba72bad1a4732dcb9b1ddc0cad01}{%
+           family={{Satish Kumar}},
+           familyi={S\bibinitperiod},
+           given={T.K.},
+           giveni={T\bibinitperiod}}}%
+        {{hash=6e0da33fcadd327da8ebc74eea9cafe2}{%
+           family={Koenig},
+           familyi={K\bibinitperiod},
+           given={Sven},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{435720fb71fff6bd0bc5be7059a41b43}
+      \strng{fullhash}{16dd323b2bb1ab18dab8c5fc6cf70931}
+      \strng{bibnamehash}{435720fb71fff6bd0bc5be7059a41b43}
+      \strng{authorbibnamehash}{435720fb71fff6bd0bc5be7059a41b43}
+      \strng{authornamehash}{435720fb71fff6bd0bc5be7059a41b43}
+      \strng{authorfullhash}{16dd323b2bb1ab18dab8c5fc6cf70931}
+      \field{extraname}{1}
+      \field{sortinit}{Z}
+      \field{sortinithash}{96892c0b0a36bb8557c40c49813d48b3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Mutex propagation is a form of efficient constraint propagation popularly used in AI planning to tightly approximate the reachable states from a given state. We utilize this idea in the context of Multi-Agent Path Finding (MAPF). When adapted to MAPF, mutex propagation provides stronger constraints for conflict resolution in CBS, a popular optimal search-based MAPF algorithm, as well as in MDD-SAT, an optimal satisfiability-based MAPF algorithm. Mutex propagation provides CBS with the ability to break symmetries in MAPF and provides MDD-SAT with the ability to make stronger inferences than unit propagation. While existing work identifies a limited form of symmetries and requires the manual design of symmetry-breaking constraints, mutex propagation is more general and allows for the automated design of symmetry-breaking constraints. Our experimental results show that CBS with mutex propagation is capable of outperforming CBSH-RCT, a state-of-the-art variant of CBS, with respect to the success rate. We also show that MDD-SAT with mutex propagation often performs better than MDD-SAT with respect to the success rate.}
+      \field{issn}{0004-3702}
+      \field{journaltitle}{Artificial Intelligence}
+      \field{title}{Multi-agent path finding with mutex propagation}
+      \field{volume}{311}
+      \field{year}{2022}
+      \true{nocite}
+      \field{pages}{103766}
+      \range{pages}{1}
+      \verb{doi}
+      \verb https://doi.org/10.1016/j.artint.2022.103766
+      \endverb
+      \verb{urlraw}
+      \verb https://www.sciencedirect.com/science/article/pii/S0004370222001060
+      \endverb
+      \verb{url}
+      \verb https://www.sciencedirect.com/science/article/pii/S0004370222001060
+      \endverb
+      \keyw{Heuristic search,Multi-agent path finding,Satisfiability solving}
+    \endentry
+    \entry{zhang_2022_large}{article}{}
+      \name{author}{5}{}{%
+        {{hash=e29e2cdbaa50d58d413b689667ace7db}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={Han},
+           giveni={H\bibinitperiod}}}%
+        {{hash=fe47db6de0754e9b037057f71287a1d8}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Yutong},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=3e8ee84b5cf0f6c7813e54088700ce0f}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Jiaoyang},
+           giveni={J\bibinitperiod}}}%
+        {{hash=24c5ad1fd87405708bd68c7dc1b0088b}{%
+           family={Kumar},
+           familyi={K\bibinitperiod},
+           given={T.},
+           giveni={T\bibinitperiod}}}%
+        {{hash=6e0da33fcadd327da8ebc74eea9cafe2}{%
+           family={Koenig},
+           familyi={K\bibinitperiod},
+           given={Sven},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{435720fb71fff6bd0bc5be7059a41b43}
+      \strng{fullhash}{14b1010d1213a8d60609581e34779dd8}
+      \strng{bibnamehash}{435720fb71fff6bd0bc5be7059a41b43}
+      \strng{authorbibnamehash}{435720fb71fff6bd0bc5be7059a41b43}
+      \strng{authornamehash}{435720fb71fff6bd0bc5be7059a41b43}
+      \strng{authorfullhash}{14b1010d1213a8d60609581e34779dd8}
+      \field{extraname}{2}
+      \field{sortinit}{Z}
+      \field{sortinithash}{96892c0b0a36bb8557c40c49813d48b3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Mutex propagation and its concomitant symmetry-breaking techniques have proven useful in Multi-Agent Path Finding (MAPF) with point agents. In this paper, we show that they can be easily generalized to richer MAPF problems. In particular, we demonstrate their application to MAPF with ``Large'' Agents (LA-MAPF). Here, agents can occupy multiple points at the same time according to their fixed shapes and sizes. While existing rule-based symmetry-breaking techniques are difficult to generalize from point agents to large agents, mutex-based symmetry-breaking techniques can be generalized easily. In a Conflict-Based Search (CBS) framework for LA-MAPF, we also develop a mutex-based conflict-selection strategy to further enhance the efficiency of the search. Through experiments on various maps, we show that our techniques significantly improve MC-CBS, a state-of-the-art optimal LA-MAPF algorithm, in terms of both success rate and runtime.}
+      \field{journaltitle}{Proceedings of the International Symposium on Combinatorial Search}
+      \field{month}{07}
+      \field{title}{Mutex Propagation in Multi-Agent Path Finding for Large Agents}
+      \field{volume}{15}
+      \field{year}{2022}
+      \true{nocite}
+      \field{pages}{249\bibrangedash 253}
+      \range{pages}{5}
+      \verb{doi}
+      \verb 10.1609/socs.v15i1.21776
+      \endverb
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

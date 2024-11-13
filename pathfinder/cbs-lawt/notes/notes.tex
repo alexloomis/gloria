@@ -1,0 +1,128 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{biblatex}
+\usepackage{amsmath,amsfonts,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{listings, listings-rust}
+\usepackage{xcolor}
+\usepackage{mathpazo}
+\usepackage[margin=2cm]{geometry}
+
+\addbibresource{references.bib}
+
+\newcommand*{\N}{\mathbb N}
+\newcommand*{\code}[1]{\texttt {#1}}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+		% keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{language=Rust, style=mystyle}
+
+\author{Alex Loomis}
+\title{Notes}
+
+\begin{document}
+
+\maketitle
+
+\section{Statement of Problem}
+
+Consider a collection of units on a (connected component of a) grid,
+along with a collection of (at least as many) targets.
+We wish to find a collection of paths for the units to the targets that
+\begin{itemize}
+	\item minimizes the makespan (the maximum time to target),
+	\item involves no unit conflicts (collisions).
+\end{itemize}
+
+In our setting, the units are rectangular, and all of the same size.
+The units move at discrete time steps, indexed by $\N$.
+Each time step, each unit may either wait at its current location,
+or move one cell in any cardinal direction,
+subject to the constraint to remain on the grid.
+
+We will take the upper-leftmost cell that a unit occupies to be its origin.
+Each grid cell has a (strictly) positive integer cost to enter,
+and a unit whose origin enters a cell must wait that many time steps before moving again.
+
+For example, in the following diagram\dots
+
+\section{Overview of Approach}
+
+To find these paths, we will begin by finding individual paths for each unit,
+then will iteratively improve upon those paths.
+This has the same structure as an A* search.
+
+\begin{lstlisting}
+	fn cbs(spec: Specification) -> HashMap<Path> {
+		let mut open = Vec::new();
+		let mut init = HashMap::new();
+		for unit in spec.units {
+			let path = find_path(unit, spec.targets);
+			init.insert(unit, path);
+		}
+		open.push(make_node(init));
+		loop {
+			let node = choose_node(open);
+			if node.conflicts.is_empty() {
+				return node.paths;
+			}
+			for child in node.expand_node() {
+				open.push(child);
+			}
+		}
+	}
+\end{lstlisting}
+
+The biggest determinants of how many loops will be required are
+what nodes we return from \code{choose\_node} and from \code{expand\_node}.
+In general, we want these functions to return nodes that are close to being correct.
+We will follow a conflict-based search (CBS) approach.
+In CBS, we add constraints to eliminate conflicts,
+until we have a conflict-free collection of paths.
+
+\section{MDDs}
+
+We will represent unit paths by multi-decision diagrams (MDDs).
+These are \dots
+We will use them to find sets of mutually exclusive states.
+
+\section{Mutexes}
+
+Our nodes consist of the following information:
+\begin{itemize}
+	\item a set of constraints,
+	\item a minimal length MDD for each unit,
+	\item the length of the longest MDD.
+\end{itemize}
+
+\appendix
+
+\section*{References}
+
+\nocite{*}
+\printbibliography
+
+\end{document}

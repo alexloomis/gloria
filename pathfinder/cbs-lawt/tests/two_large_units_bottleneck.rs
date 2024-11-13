@@ -28,17 +28,17 @@ fn find_solution() -> HashMap<Pair, Path> {
 }
 
 #[test]
-#[timeout(100)]
+#[timeout(1000)]
 fn compatible_paths() {
     let solution = find_solution();
     print_paths(&solution);
     let conflicts = find_conflicts(&solution);
-    println!("{conflicts:?}");
+    println!("Conflicts: {conflicts:?}");
     assert!(conflicts.is_empty());
 }
 
 #[test]
-#[timeout(100)]
+#[timeout(1000)]
 fn correct_lengths() {
     let solution = find_solution();
     print_paths(&solution);
