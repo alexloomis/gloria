@@ -1,6 +1,7 @@
 use crate::prelude::*;
 use radix_heap::RadixHeapMap;
-use std::cmp::min;
+use std::cmp::{min, Reverse};
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::rc::Rc;
 
@@ -17,14 +18,10 @@ pub struct ScoredCell {
     // Cost including heuristic, what time do we think we will arrive?
     pub unit: UnitState,
     pub cost: usize,
-    pub prev: Option<Rc<ScoredCell>>,
+    pub pred: Option<Rc<ScoredCell>>,
 }
 
 impl ScoredCell {
-    fn uid(&self) -> Pair {
-        self.unit.uid
-    }
-
     fn location(&self) -> Rect {
         self.unit.location
     }
@@ -34,34 +31,35 @@ impl ScoredCell {
     }
 }
 
-// Cost is a function of location and duration, so if location and duration are equal,
+// Cost is a function of location and duration.1, so if location and duration are equal,
 // then so too *should* cost be.
 impl PartialEq for ScoredCell {
     fn eq(&self, other: &Self) -> bool {
-        self.location() == other.location() && self.duration() == other.duration()
+        self.location() == other.location() && self.duration().1 == other.duration().1
     }
 }
 
 impl Eq for ScoredCell {}
 
-// Lowest cost has highest priority, then latest departure, then latest arrival, then we don't
-// really care, so we just do by cell. Using a max heap, so we reverse the ordering.
-impl Ord for ScoredCell {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.cost
-            .cmp(&other.cost)
-            .then_with(|| other.duration().1.cmp(&self.duration().1))
-            .then_with(|| other.duration().0.cmp(&self.duration().0))
-            .then_with(|| other.location().cmp(&self.location()))
-            .reverse()
-    }
-}
+// Lowest cost comes first.
+// Finding all paths, so tie-breaking doesn't matter,
+// but we define the ordering to agree with equality.
+// Later durations come earlier, because they are closest to the target.
+// Using a max heap, so we reverse the ordering
+//impl Ord for ScoredCell {
+//    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+//        self.cost
+//            .cmp(&other.cost)
+//            .then_with(|| other.duration().1.cmp(&self.duration().1))
+//            .reverse()
+//    }
+//}
 
-impl PartialOrd for ScoredCell {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
+//impl PartialOrd for ScoredCell {
+//    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+//        Some(self.cmp(other))
+//    }
+//}
 
 impl Debug for ScoredCell {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -73,27 +71,57 @@ impl Debug for ScoredCell {
             self.duration().0,
             self.duration().1,
             self.cost,
-            self.prev
+            self.pred
         )
     }
-}
-
-fn open_allows_candidate(candidate: &ScoredCell, open: &RadixHeapMap<i64, ScoredCell>) -> bool {
-    !open
-        .iter()
-        .any(|(_, cell)| candidate.cost <= cell.cost && cell.location() == candidate.location())
 }
 
 fn reconstruct_path(last: ScoredCell) -> Path {
     let mut path = Vec::with_capacity(last.duration().1 + 1);
     path.push(last.unit);
     let mut prev = Rc::new(last);
-    while let Some(scored_cell) = &prev.prev {
+    while let Some(scored_cell) = &prev.pred {
         path.push(scored_cell.unit);
         prev = scored_cell.clone();
     }
     path.reverse();
     path
+}
+
+pub struct PathTree {
+    nodes: HashSet<Rc<UnitState>>,
+    origins: Vec<Rc<UnitState>>,
+    destinations: Vec<Rc<UnitState>>,
+    preds: HashMap<Rc<UnitState>, Vec<Rc<UnitState>>>,
+    succs: HashMap<Rc<UnitState>, Vec<Rc<UnitState>>>,
+}
+
+impl PathTree {
+    fn new() -> PathTree {
+        PathTree {
+            nodes: HashSet::new(),
+            origins: Vec::new(),
+            destinations: Vec::new(),
+            preds: HashMap::new(),
+            succs: HashMap::new(),
+        }
+    }
+
+    fn backtrace_paths(mut ends: Vec<ScoredCell>) -> PathTree {
+        let mut pt = PathTree::new();
+        while let Some(node) = ends.pop() {
+            let state = Rc::new(node.unit);
+            // if the state is new, insert it and...
+            if pt.nodes.insert(state) {
+                if let Some(pred) = node.pred {
+                    ends.push(pred);
+                } else {
+                    pt.origins.push(state);
+                }
+            }
+        }
+        pt
+    }
 }
 
 #[derive(Debug)]
@@ -140,21 +168,19 @@ impl AStar {
         constraints: &[Constraint],
     ) -> Vec<ScoredCell> {
         let sc = Rc::new(scored_cell);
-        let uid = sc.uid();
         let departure = sc.duration().1;
         let neighbors = self.terrain.neighbors(sc.location().origin);
         let prev = Some(sc.clone());
         let mut succ = Vec::with_capacity(neighbors.len() + 1);
 
         let unit = UnitState {
-            uid,
             location: sc.location(),
             duration: Pair(departure + 1, departure + 1),
         };
         let wait = ScoredCell {
             cost: sc.cost + 1,
             unit,
-            prev: prev.clone(),
+            pred: prev.clone(),
         };
         if satisfies_constraints(wait.unit, constraints) {
             succ.push(wait);
@@ -164,14 +190,13 @@ impl AStar {
             if let Some(estimate) = heuristic[location] {
                 let new_departure = departure + self.terrain.cost(location);
                 let unit = UnitState {
-                    uid,
                     location: location.extend(self.terrain.unit_extent()),
                     duration: Pair(departure + 1, new_departure),
                 };
                 let candidate = ScoredCell {
                     cost: new_departure + estimate,
                     unit,
-                    prev: prev.clone(),
+                    pred: prev.clone(),
                 };
                 if satisfies_constraints(candidate.unit, constraints) {
                     succ.push(candidate);
@@ -181,149 +206,50 @@ impl AStar {
         succ
     }
 
-    fn arrived(
-        &self,
-        unit: UnitState,
-        end_cell: Option<Pair>,
-        end_time: Option<usize>,
-        constraints: &[Constraint],
-    ) -> bool {
-        let good_cell = match end_cell {
-            Some(cell) => unit.location.origin == cell,
-            None => self.destinations.contains(&unit.location.origin),
-        };
-        let good_time = match end_time {
-            Some(time) => unit.duration.1 >= time || may_stop(unit, constraints),
-            None => may_stop(unit, constraints),
-        };
+    fn arrived(&self, unit: UnitState, end_time: usize) -> bool {
+        let good_cell = self.destinations.contains(&unit.location.origin);
+        let good_time = unit.duration.1 == end_time;
         good_cell && good_time
     }
 
-    fn satisfies_cutoff(scored_cell: &ScoredCell, end_time: Option<usize>) -> bool {
-        match end_time {
-            Some(time) => scored_cell.cost <= time,
-            None => true,
-        }
-    }
+    fn find_terminal(
+        &self,
+        origins: Vec<Pair>,
+        end_time: usize,
+        constraints: &[Constraint],
+    ) -> Vec<ScoredCell> {
+        // We either waited or we just arrived, giving potentially different dutations.
+        let mut out = Vec::with_capacity(2 * self.destinations.len());
 
-    pub fn astar(&self, specs: Specification) -> Option<Path> {
-        let initial = UnitState {
-            uid: specs.uid,
-            location: specs.start_cell.extend(self.terrain.unit_extent()),
-            duration: Pair(specs.start_time, specs.start_time),
-        };
-        let heuristic = match specs.end_cell {
-            Some(cell) => &self.terrain.distances()[cell],
-            None => &self.heuristic,
-        };
-
-        // Are we too far away?
-        match heuristic[specs.start_cell] {
-            None => {
-                return None;
-            }
-            Some(estimate) => {
-                if let Some(time) = specs.end_time {
-                    if specs.start_time + estimate > time {
-                        return None;
-                    }
-                }
-            }
-        }
-
-        let mut open = RadixHeapMap::new_at(0);
-        let sc = ScoredCell {
+        let initial = origins.into_iter().map(|loc| ScoredCell {
             cost: 0,
-            unit: initial,
-            prev: None,
-        };
-        // May cause an issue if cost > 2^32
-        open.push(-(sc.cost as i64), sc);
+            unit: {
+                UnitState {
+                    location: loc.extend(self.terrain.unit_extent()),
+                    duration: Pair(0, 0),
+                }
+            },
+            pred: None,
+        });
+
+        let mut open = RadixHeapMap::new_at(Reverse(0));
+        for cell in initial {
+            open.push(Reverse(cell.cost), cell);
+        }
 
         loop {
             let (_, current) = match open.pop() {
                 None => {
-                    return None;
+                    return out;
                 }
                 Some(sc) => sc,
             };
-            if AStar::satisfies_cutoff(&current, specs.end_time) {
-                for successor in self.successors(current.clone(), heuristic, &specs.constraints) {
-                    if open_allows_candidate(&successor, &open) {
-                        if self.arrived(
-                            successor.unit,
-                            specs.end_cell,
-                            specs.end_time,
-                            &specs.constraints,
-                        ) {
-                            //println!("{successor:?}");
-                            let path = reconstruct_path(successor);
-                            //check_path_times(&path);
-                            return Some(path);
-                        }
-                        open.push(-(successor.cost as i64), successor);
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn all_paths(&self, origins: &[Pair], length: usize) -> Vec<Path> {
-        let initial = UnitState {
-            uid: specs.uid,
-            location: specs.start_cell.extend(self.terrain.unit_extent()),
-            duration: Pair(specs.start_time, specs.start_time),
-        };
-        let heuristic = match specs.end_cell {
-            Some(cell) => &self.terrain.distances()[cell],
-            None => &self.heuristic,
-        };
-
-        // Are we too far away?
-        match heuristic[specs.start_cell] {
-            None => {
-                return None;
-            }
-            Some(estimate) => {
-                if let Some(time) = specs.end_time {
-                    if specs.start_time + estimate > time {
-                        return None;
-                    }
-                }
-            }
-        }
-
-        let mut open = RadixHeapMap::new_at(0);
-        let sc = ScoredCell {
-            cost: 0,
-            unit: initial,
-            prev: None,
-        };
-        // May cause an issue if cost > 2^32
-        open.push(-(sc.cost as i64), sc);
-
-        loop {
-            let (_, current) = match open.pop() {
-                None => {
-                    return None;
-                }
-                Some(sc) => sc,
-            };
-            if AStar::satisfies_cutoff(&current, specs.end_time) {
-                for successor in self.successors(current.clone(), heuristic, &specs.constraints) {
-                    if open_allows_candidate(&successor, &open) {
-                        if self.arrived(
-                            successor.unit,
-                            specs.end_cell,
-                            specs.end_time,
-                            &specs.constraints,
-                        ) {
-                            //println!("{successor:?}");
-                            let path = reconstruct_path(successor);
-                            //check_path_times(&path);
-                            return Some(path);
-                        }
-                        open.push(-(successor.cost as i64), successor);
+            for successor in self.successors(current.clone(), &self.heuristic, constraints) {
+                if successor.cost <= end_time {
+                    if self.arrived(successor.unit, end_time) {
+                        out.push(successor);
+                    } else {
+                        open.push(Reverse(successor.cost), successor);
                     }
                 }
             }
