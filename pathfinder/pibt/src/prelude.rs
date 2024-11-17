@@ -4,6 +4,8 @@ use std::ops;
 //pub use unit_state::*;
 pub mod grid;
 pub use grid::*;
+pub mod terrain;
+pub use terrain::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Pair(pub usize, pub usize);

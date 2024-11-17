@@ -6,145 +6,161 @@ use std::rc::Rc;
 
 use crate::prelude::*;
 
-#[derive(Eq, PartialEq, Debug, Clone, Copy)]
-struct CellCost(Option<usize>);
+#[derive(PartialEq, Eq)]
+struct UnitState {
+    location: Rect,
+    target: Pair,
+    // wait == 1 means this turn set wait == 0; wait == 0 means may move
+    wait: usize,
+    has_moved: bool,
+    _history: Vec<Pair>,
+}
 
-impl Ord for CellCost {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        if self == other {
-            std::cmp::Ordering::Equal
-        } else if self.0.is_none() {
-            std::cmp::Ordering::Greater
-        } else if other.0.is_none() {
-            std::cmp::Ordering::Less
-        } else {
-            self.cmp(other)
+impl UnitState {
+    fn init(origin: Pair, extent: Pair) -> UnitState {
+        UnitState {
+            location: Rect { origin, extent },
+            target: Pair(0, 0),
+            wait: 0,
+            has_moved: false,
+            _history: Vec::new(),
         }
     }
 }
 
-impl PartialOrd for CellCost {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-#[derive(PartialEq, Eq)]
-struct UnitState {
-    uid: Pair,
-    location: Rect,
-    // wait == 1 means this turn set wait == 0; wait == 0 means may move
-    wait: usize,
-    _history: Vec<Pair>,
-}
-
-#[derive(PartialEq, Eq)]
-struct PIBTState {
-    this_queue: Vec<Rc<UnitState>>,
-    next_queue: Vec<Rc<UnitState>>,
-}
-
-#[derive(PartialEq, Eq)]
 pub struct PIBT {
-    grid: Grid<CellCost>,
-    unit_extent: Pair,
-    // from idx_0 to idx_1 the distance is value
-    distances: HashMap<Pair, HashMap<Pair, CellCost>>,
-    // maps from uid to target
-    targets: HashMap<Pair, Pair>,
+    terrain: Terrain,
+    units: HashMap<Pair, UnitState>,
     // indexed by destination
     heuristics: HashMap<Pair, Grid<CellCost>>,
-    state: PIBTState,
+    queue: Vec<Pair>,
 }
 
 // init
 impl PIBT {
-    fn find_heuristics(&mut self) {
-        self.heuristics = HashMap::with_capacity(self.targets.len());
-        for destination in self.targets.values() {
-            let heuristic = self.grid.djikstra(Rect {
-                origin: *destination,
-                extent: self.unit_extent,
-            });
-            self.heuristics.insert(*destination, heuristic);
+    fn unit_extent(&self) -> Pair {
+        self.terrain.unit_extent()
+    }
+
+    fn init_units(&mut self, origins: Vec<Pair>) {
+        self.units = HashMap::with_capacity(origins.len());
+        for origin in origins {
+            let unit = UnitState::init(origin, self.unit_extent());
+            self.units.insert(origin, unit);
         }
     }
 
-    fn find_max_among(&self, origins: &[Pair], destinations: &[Pair]) -> (Pair, Pair) {
-        let mut max_x = origins[0];
-        let mut max_y = destinations[0];
-        let mut max_val = self.distances[&max_x][&max_y];
-        for x in origins {
-            for y in destinations {
-                let val = self.distances[x][y];
+    fn origins(&self) -> Vec<Pair> {
+        let mut out = Vec::with_capacity(self.units.len());
+        for unit in self.units.values() {
+            out.push(unit.location.origin);
+        }
+        out
+    }
+
+    fn find_heuristics(&mut self, targets: Vec<Pair>) {
+        self.heuristics = HashMap::with_capacity(self.units.len());
+        for target in targets {
+            let heuristic = self.terrain.djikstra(target);
+            self.heuristics.insert(target, heuristic);
+        }
+    }
+
+    fn targets(&self) -> Vec<Pair> {
+        let mut out = Vec::with_capacity(self.units.len());
+        for target in self.heuristics.keys() {
+            out.push(*target);
+        }
+        out
+    }
+
+    fn heuristic(&self, origin: Pair, target: Pair) -> CellCost {
+        self.heuristics[&target][origin]
+    }
+
+    fn find_max_among(&self, origins: &[Pair], targets: &[Pair]) -> (Pair, Pair) {
+        let mut max_origin = origins[0];
+        let mut max_target = targets[0];
+        let mut max_val = self.heuristic(max_origin, max_target);
+        for origin in origins {
+            for target in targets {
+                let val = self.heuristic(*origin, *target);
                 if val > max_val {
-                    max_x = *x;
-                    max_y = *y;
+                    max_origin = *origin;
+                    max_target = *target;
                     max_val = val;
                 }
             }
         }
-        (max_x, max_y)
+        (max_origin, max_target)
     }
 
     fn find_min_along(
         &self,
-        one_of: (Pair, Pair),
+        origin: Pair,
+        target: Pair,
         origins: &[Pair],
-        destinations: &[Pair],
+        targets: &[Pair],
     ) -> (Pair, Pair) {
-        let mut min_x = one_of.0;
-        let mut min_y = one_of.1;
-        let mut min_val = self.distances[&one_of.0][&one_of.1];
+        let mut min_origin = origin;
+        let mut min_target = target;
+        let mut min_val = self.heuristic(origin, target);
         for x in origins {
-            let val = self.distances[x][&one_of.1];
+            let val = self.heuristic(*x, target);
             if val < min_val {
                 min_val = val;
-                min_x = *x;
-                min_y = one_of.1;
+                min_origin = *x;
+                min_target = target;
             }
         }
-        for y in destinations {
-            let val = self.distances[&one_of.0][y];
+        for y in targets {
+            let val = self.heuristic(origin, *y);
             if val < min_val {
                 min_val = val;
-                min_x = one_of.0;
-                min_y = *y
+                min_origin = origin;
+                min_target = *y;
             }
         }
-        (min_x, min_y)
+        (min_origin, min_target)
     }
 
     // try to minimize makespan
-    fn assign_targets(&mut self, origins: Vec<Pair>, destinations: Vec<Pair>) {
-        self.targets.clear();
-        let mut unassigned_origins = origins.clone();
-        let mut unassigned_dests = destinations.clone();
-
-        while !unassigned_origins.is_empty() {
+    fn assign_targets(&mut self) {
+        let mut origins = self.origins();
+        let mut targets = self.targets();
+        while !origins.is_empty() {
             // Give either the worst origin or the worst destination its best choice
-            let coord = self.find_max_among(&unassigned_origins, &unassigned_dests);
-            let (origin, target) =
-                self.find_min_along(coord, &unassigned_origins, &unassigned_dests);
-            self.targets.insert(origin, target);
-            unassigned_origins.retain(|origin_| *origin_ != origin);
-            unassigned_dests.retain(|destination| *destination != target);
+            let coord = self.find_max_among(&origins, &targets);
+            let (origin, target) = self.find_min_along(coord.0, coord.1, &origins, &targets);
+            self.units
+                .entry(origin)
+                .and_modify(|unit| unit.target = target);
+            origins.retain(|origin_| *origin_ != origin);
+            targets.retain(|destination| *destination != target);
         }
     }
 
+    fn target_map(&self) -> HashMap<Pair, Pair> {
+        let mut out = HashMap::with_capacity(self.units.len());
+        for (loc, unit) in &self.units {
+            out.insert(*loc, unit.target);
+        }
+        out
+    }
+
     fn find_swap(&self) -> Option<(Pair, Pair)> {
-        for (origin_i, target_i) in &self.targets {
-            for (origin_j, target_j) in &self.targets {
+        for (origin_i, target_i) in self.target_map() {
+            for (origin_j, target_j) in self.target_map() {
                 let improve_i =
-                    self.distances[origin_i][target_j] < self.distances[origin_i][target_i];
+                    self.heuristic(origin_i, target_j) < self.heuristic(origin_i, target_i);
                 let improve_j =
-                    self.distances[origin_j][target_i] < self.distances[origin_j][target_j];
+                    self.heuristic(origin_j, target_i) < self.heuristic(origin_j, target_j);
                 let worsen_i =
-                    self.distances[origin_i][target_j] > self.distances[origin_i][target_i];
+                    self.heuristic(origin_i, target_j) > self.heuristic(origin_i, target_i);
                 let worsen_j =
-                    self.distances[origin_j][target_i] > self.distances[origin_j][target_j];
+                    self.heuristic(origin_j, target_i) > self.heuristic(origin_j, target_j);
                 if (improve_i && !worsen_j) || (improve_j && !worsen_i) {
-                    return Some((*origin_i, *origin_j));
+                    return Some((origin_i, origin_j));
                 }
             }
         }
@@ -152,9 +168,14 @@ impl PIBT {
     }
 
     fn perform_swap(&mut self, swap: (Pair, Pair)) {
-        let new_target_0 = self.targets[&swap.1];
-        let new_target_1 = self.targets.insert(swap.0, new_target_0).unwrap();
-        self.targets.insert(swap.1, new_target_1);
+        let new_target_0 = self.units[&swap.1].target;
+        let new_target_1 = self.units[&swap.0].target;
+        self.units
+            .entry(swap.0)
+            .and_modify(|unit| unit.target = new_target_0);
+        self.units
+            .entry(swap.1)
+            .and_modify(|unit| unit.target = new_target_1);
     }
 
     fn improve_assignments(&mut self) {
@@ -163,31 +184,59 @@ impl PIBT {
         }
     }
 
-    fn new(grid: Grid<CellCost>, unit_extent: Pair) -> PIBT {
+    fn dists_from_target(&self) -> HashMap<Pair, CellCost> {
+        let origins = self.units.keys();
+        let mut out = HashMap::with_capacity(origins.len());
+        for origin in origins {
+            let target = self.units[&origin].target;
+            out.insert(*origin, self.heuristic(*origin, target));
+        }
+        out
+    }
+
+    // Units the farthest away should start with the highest priority (front of the list)
+    fn init_queue(&mut self) {
+        let dists = self.dists_from_target();
+        self.queue = self.units.keys().into_iter().map(|k| *k).collect();
+        self.queue.sort_unstable_by_key(|origin| dists[origin]);
+        self.queue.reverse();
+    }
+    //}
+
+    fn new(terrain: Terrain, unit_extent: Pair) -> PIBT {
         PIBT {
-            grid,
-            unit_extent,
-            distances: HashMap::new(),
-            targets: HashMap::new(),
+            terrain,
             heuristics: HashMap::new(),
-            state: PIBTState {
-                this_queue: Vec::new(),
-                next_queue: Vec::new(),
-            },
+            queue: Vec::new(),
+            units: HashMap::new(),
         }
     }
 
     pub fn init(
-        grid: Grid<CellCost>,
+        terrain: Terrain,
         origins: Vec<Pair>,
-        destinations: Vec<Pair>,
+        targets: Vec<Pair>,
         unit_extent: Pair,
     ) -> PIBT {
-        let mut pibt = PIBT::new(grid, unit_extent);
-        pibt.find_heuristics();
-        pibt.assign_targets(origins, destinations);
+        let mut pibt = PIBT::new(terrain, unit_extent);
+        pibt.init_units(origins);
+        pibt.find_heuristics(targets);
+        pibt.assign_targets();
         pibt.improve_assignments();
+        pibt.init_queue();
         pibt
+    }
+}
+
+enum MoveStatus {
+    Moved,
+    Waiting(usize),
+    Blocked,
+}
+
+impl PIBT {
+    fn movement_targets(&self, uid: Pair) -> Vec<Rect> {
+        let mut out = self.terrain.neighbors(cell);
     }
 }
 
@@ -212,19 +261,15 @@ fn wait_time(states: &[Rc<UnitState>]) -> usize {
 
 // Unit movement
 impl PIBT {
-    fn movement_targets(&self, location: Rect, allow_stationary: bool) -> Vec<Rect> {
-        todo!()
-    }
-
     fn collisions(&self, location: Rect) -> [Vec<Rc<UnitState>>; 2] {
-        let mut high_prio = Vec::with_capacity(self.state.next_queue.len());
-        let mut low_prio = Vec::with_capacity(self.state.this_queue.len());
-        for unit in &self.state.next_queue {
+        let mut high_prio = Vec::with_capacity(self.units.moved.len());
+        let mut low_prio = Vec::with_capacity(self.units.pending.len());
+        for unit in &self.units.moved {
             if location.intersects(unit.location) {
                 high_prio.push(unit.clone());
             }
         }
-        for unit in &self.state.this_queue {
+        for unit in &self.units.pending {
             if location.intersects(unit.location) {
                 low_prio.push(unit.clone());
             }
@@ -258,26 +303,6 @@ impl PIBT {
             BlockStatus::LowPrio(list) => todo!(),
             BlockStatus::Stuck => todo!(),
         }
-    }
-
-    fn init_units(&self) -> Vec<UnitState> {
-        let mut units = Vec::with_capacity(self.origins.len());
-        for (idx, origin) in self.origins.iter().enumerate() {
-            let unit = UnitState {
-                idx,
-                location: Rect {
-                    origin: *origin,
-                    extent: self.unit_extent,
-                },
-                wait: 0,
-                _history: Vec::new(),
-            };
-            units.push(unit);
-        }
-        // Units the farthest away should start with the highest priority (front of the list)
-        units.sort_unstable_by_key(|unit| self.heuristics[unit.idx][unit.location.origin]);
-        units.reverse();
-        units
     }
 
     pub fn pibt(&self) {
