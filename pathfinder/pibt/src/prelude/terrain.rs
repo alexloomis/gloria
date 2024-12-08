@@ -2,7 +2,7 @@ use crate::prelude::*;
 use radix_heap::RadixHeapMap;
 
 #[derive(Eq, PartialEq, Debug, Clone, Copy)]
-pub struct CellCost(Option<usize>);
+pub struct CellCost(pub Option<usize>);
 
 impl Ord for CellCost {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
@@ -13,7 +13,7 @@ impl Ord for CellCost {
         } else if other.0.is_none() {
             std::cmp::Ordering::Less
         } else {
-            self.cmp(other)
+            self.0.cmp(&other.0)
         }
     }
 }
