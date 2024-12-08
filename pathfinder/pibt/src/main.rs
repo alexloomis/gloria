@@ -82,17 +82,13 @@ fn draw_with_paths(terrain: &Terrain, paths: Vec<Vec<Pair>>) {
 fn main() {
     let mut pibt = test_pibt();
     println!("pibt initialized");
-    for i in 0..100 {
-        println!("{i}");
-        pibt.step();
-        if pibt.all_arrived() {
-            break;
-        }
-        if i == 99 {
-            for (unit, dest) in pibt.unit_dests() {
-                println!("Unit at {unit:?} has dest {dest:?}");
-            }
+    pibt.run(Some(1_000));
+    if !pibt.all_arrived() {
+        for (unit, dest) in pibt.unit_dests() {
+            println!("Unit at {unit:?} has dest {dest:?}");
         }
     }
     draw_with_paths(pibt.terrain(), pibt.paths());
+    let makespan = pibt.paths().into_iter().map(|path| path.len()).max();
+    println!("{makespan:?}");
 }

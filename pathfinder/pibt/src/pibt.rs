@@ -208,10 +208,9 @@ impl PIBT {
         self.queue.sort_unstable_by_key(|origin| dists[origin]);
         self.queue.reverse();
     }
-    //}
 
     fn init_starts_empty(&mut self) {
-        self.moved.reserve(self.units.len());
+        self.moved = Vec::with_capacity(self.units.len());
     }
 
     fn new(terrain: Terrain, unit_extent: Pair) -> PIBT {
@@ -352,5 +351,16 @@ impl PIBT {
             .iter()
             .map(|(loc, unit)| (*loc, unit.destination))
             .collect()
+    }
+
+    pub fn run(&mut self, max_steps: Option<usize>) {
+        let mut num_steps = 0;
+        while !self.all_arrived() {
+            if max_steps.is_some_and(|m| m == num_steps) {
+                break;
+            }
+            self.step();
+            num_steps += 1;
+        }
     }
 }
