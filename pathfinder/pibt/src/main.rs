@@ -20,7 +20,7 @@ fn formation(size: Pair, spread: usize, offset: Pair) -> Vec<Pair> {
 }
 
 fn make_grid(extent: Pair, density: f64, avoid: Vec<Pair>) -> Grid<CellCost> {
-    let mut grid = Grid::init(extent, CellCost(Some(1)));
+    let mut grid = Grid::init(extent, CellCost(Some(2)));
     let mut rng = rand::thread_rng();
     for i in 0..=extent.0 {
         for j in 0..=extent.1 {
