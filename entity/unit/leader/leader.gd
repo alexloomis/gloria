@@ -58,13 +58,14 @@ func _place_followers() -> void:
 
 func get_paths(to: Vector2i) -> Array[Array]:
 	nav.reset(self)
-	return nav.find_paths(to)
+	return nav.find_nonempty_paths(to)
 
 func move_formation(to: Vector2i) -> void:
 	if not available:
 		return
 	available = false
 	var paths: Array[Array] = get_paths(to)
+	print(paths[0])
 	for time in speed:
 		var done: bool = true
 		if paths[0].size() > 1:

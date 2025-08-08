@@ -1,6 +1,6 @@
 extends Resource
 
-class_name Pathfinder
+class_name SimuPathfinder
 
 var _cells: Dictionary[Vector2i, CellInfo]
 var _terrain_data: Dictionary[Terrain.TILE, int]
@@ -162,22 +162,22 @@ func _min_with_heuristic(states: Dictionary[Dictionary, int], targets: Array[Vec
 			best = estimate
 	return out
 
-func _find_paths(state: Dictionary[Vector2i, int], targets: Array[Vector2i]):
-	var checked: Dictionary[Dictionary, int]
-	var reached: Dictionary[Dictionary, int] = {state: 0}
-	while not reached.is_empty():
-		# Find cell with an earliest departure time
-		var next: Dictionary[Vector2i, int] = _min_with_heuristic(reached, targets)
-		# Compute costs to cell's reachable neighbors
-		for neighbor: Dictionary[Vector2i, int] in _neighbors(next):
-			var new_cost: int = reached[next] + _total_cost(next, neighbor)
-			var est_cost: int = new_cost + _heuristic(neighbor.keys(), targets)
-			if est_cost < best and not neighbor in checked:
-				if neighbor in reached:
-					reached[neighbor] = min(reached[neighbor], new_cost)
-				else:
-					reached[neighbor] = new_cost
-		# Move cell to checked
-		checked[early_cell] = reached[early_cell]
-		reached.erase(early_cell)
-	return checked
+#func _find_paths(state: Dictionary[Vector2i, int], targets: Array[Vector2i]):
+	#var checked: Dictionary[Dictionary, int]
+	#var reached: Dictionary[Dictionary, int] = {state: 0}
+	#while not reached.is_empty():
+		## Find cell with an earliest departure time
+		#var next: Dictionary[Vector2i, int] = _min_with_heuristic(reached, targets)
+		## Compute costs to cell's reachable neighbors
+		#for neighbor: Dictionary[Vector2i, int] in _neighbors(next):
+			#var new_cost: int = reached[next] + _total_cost(next, neighbor)
+			#var est_cost: int = new_cost + _heuristic(neighbor.keys(), targets)
+			#if est_cost < best and not neighbor in checked:
+				#if neighbor in reached:
+					#reached[neighbor] = min(reached[neighbor], new_cost)
+				#else:
+					#reached[neighbor] = new_cost
+		## Move cell to checked
+		#checked[early_cell] = reached[early_cell]
+		#reached.erase(early_cell)
+	#return checked

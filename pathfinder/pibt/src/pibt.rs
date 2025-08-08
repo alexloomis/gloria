@@ -3,27 +3,11 @@
 use core::panic;
 use std::cmp::{max, min};
 use std::collections::HashMap;
-use std::vec;
 
+mod unit_list;
+
+use crate::pibt::unit_list::*;
 use crate::prelude::*;
-
-#[derive(PartialEq, Eq, Clone)]
-struct UnitState {
-    destination: Pair,
-    // wait == 1 means this turn set wait == 0; wait == 0 means may move
-    wait: usize,
-    history: Vec<Pair>,
-}
-
-impl UnitState {
-    fn init(origin: Pair) -> UnitState {
-        UnitState {
-            destination: Pair(0, 0),
-            wait: 0,
-            history: vec![origin],
-        }
-    }
-}
 
 pub struct PIBT {
     terrain: Terrain,
@@ -34,12 +18,15 @@ pub struct PIBT {
     moved: Vec<Pair>,
 }
 
-// init
+// access
 impl PIBT {
     fn unit_extent(&self) -> Pair {
         self.terrain.unit_extent()
     }
+}
 
+// init
+impl PIBT {
     fn init_units(&mut self, origins: Vec<Pair>) {
         self.units = HashMap::with_capacity(origins.len());
         for origin in origins {

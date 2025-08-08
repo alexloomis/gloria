@@ -6,3 +6,8 @@ class_name VirtualUnit
 
 var cell: Vector2i
 var target: Vector2i
+var idx: int
+var path: Array[Vector3i]
+
+func _init() -> void:
+	path = []

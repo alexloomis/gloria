@@ -71,7 +71,7 @@ func distances(origin: Vector2i, max_dist: int = Terrain.IMPASSIBLE - 1) -> Dict
 		reached.erase(early_cell)
 	return checked
 
-# Time coord is earliest departure time
+# Third coord is earliest departure time
 func _neighbors(cell: Vector3i) -> Array[Vector3i]:
 	var cell_: Vector2i = Util.project(cell)
 	var time: int = cell.z
@@ -94,8 +94,8 @@ func _neighbors(cell: Vector3i) -> Array[Vector3i]:
 				good_nbrs.append(Vector3i(n.x, n.y, time + cost(n)))
 	return good_nbrs
 
+# Find all (?) possible cells/departure times in path to target with path length at least min_time.
 # Third coord is departure time.
-# For clear neighbors of the origin, this is their cost
 func _departure_times(origin: Vector3i, target: Vector2i, min_time: int, max_time: int = Terrain.IMPASSIBLE - 1) -> Array[Vector3i]:
 	var checked: Array[Vector3i] = []
 	var reached: Array[Vector3i] = [origin]
@@ -114,7 +114,6 @@ func _departure_times(origin: Vector3i, target: Vector2i, min_time: int, max_tim
 		reached.erase(early_cell)
 	return checked
 
-# block_level is the highest block level we consider to be clear
 func _find_path(from: Vector2i, to: Vector2i, min_time: int) -> Array[Vector3i]:
 	var path: Array[Vector3i]
 	var origin: Vector3i = Util.embed(from)
@@ -145,19 +144,29 @@ func _find_path(from: Vector2i, to: Vector2i, min_time: int) -> Array[Vector3i]:
 	path.reverse()
 	return path
 
-func _reserve_path(path: Array[Vector3i], total_time: int) -> void:
+# Shouldn't depend on total_time
+func reserve_path(path: Array[Vector3i], total_time: int) -> void:
 	for v: Vector3i in path.slice(1):
 		var cell: Vector2i = Util.project(v)
 		var delta: int = cost(cell)
 		for time in range(v.z - delta + 1, v.z + 1):
 			reserve(cell, time)
-	for time in range(path[-1].z + 1, total_time + 1):
-		reserve(Util.project(path[-1]), time)
+	if path:
+		for time in range(path[-1].z + 1, total_time + 1):
+			reserve(Util.project(path[-1]), time)
+	else:
+		print("Empty path")
 
+# Clears ALL reservations, even at other times!
+func release_path(path: Array[Vector3i]) -> void:
+	for v in path:
+		_cells[Util.project(v)].block_times.clear()
+
+# Find a path from -> to, stopping part-way if total time is exceeded. Reserve the path
 func find_path(from: Vector2i, to: Vector2i, total_time: int) -> Array[Vector3i]:
 	var path: Array[Vector3i] = _find_path(from, to, total_time)
 	var on_time: Callable = func(v3: Vector3i) -> bool:
 		return v3.z <= total_time
 	path = path.filter(on_time)
-	_reserve_path(path, total_time)
+#	_reserve_path(path, total_time)
 	return path

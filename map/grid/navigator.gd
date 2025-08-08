@@ -4,7 +4,6 @@ class_name Navigator
 
 var units: Array[VirtualUnit]
 var formation: Formation
-# Reflects the positions of the virtual units.
 var pf: Pathfinder
 var speed: int
 
@@ -12,20 +11,24 @@ func reset(real_leader: Leader) -> void:
 	units.clear()
 	units.append(VirtualUnit.new())
 	units[0].cell = real_leader.cell
+	units[0].idx = 0
+	var idx: int = 1
 	for follower in real_leader.followers:
 		var vf: VirtualUnit = VirtualUnit.new()
 		vf.cell = follower.cell
+		vf.idx = idx
+		idx += 1
 		units.append(vf)
 	formation = real_leader.formation
 	speed = real_leader.speed
 	pf = real_leader.pf
-	_clear_company()
+	_pf_clear_company()
 
-func _clear_company() -> void:
+func _pf_clear_company() -> void:
 	for unit in units:
 		pf.clear(unit.cell)
 
-func _single_target(near: Vector2i, omit: Array[Vector2i]) -> Vector2i:
+func _target_near(near: Vector2i, omit: Array[Vector2i]) -> Vector2i:
 	var viable: Callable = func(v: Vector2i) -> bool:
 		return pf.is_clear(v) and not omit.has(v)
 	if viable.call(near):
@@ -46,7 +49,7 @@ func _targets(near: Vector2i) -> Array[Vector2i]:
 		unassigned[i] = Grid.clamp(unassigned[i])
 	var targets: Array[Vector2i]
 	for target in unassigned:
-		targets.append(_single_target(target, targets))
+		targets.append(_target_near(target, targets))
 	return targets
 
 func _assign_targets(followers: Array[VirtualUnit], targets: Array[Vector2i]) -> void:
@@ -91,5 +94,49 @@ func find_paths(to: Vector2i) -> Array[Array]:
 	_assign_targets(units.slice(1), targets.slice(1))
 	var paths: Array[Array]
 	for unit in units:
-		paths.append(pf.find_path(unit.cell, unit.target, speed))
+		var path: Array[Vector3i] = pf.find_path(unit.cell, unit.target, speed)
+		paths.append(path)
+		pf.reserve_path(path, speed)
 	return paths
+
+# Good enough for prototyping. Rewrite nicely in Rust later
+func find_nonempty_paths(to: Vector2i) -> Array[Array]:
+	var targets: Array[Vector2i] = _targets(to)
+	units[0].target = targets[0]
+	_assign_targets(units.slice(1), targets.slice(1))
+	
+	# Sort units by furthest to closest to their respective targets
+	var target_dists: Dictionary[Vector2i, Dictionary]
+	for target in targets:
+		target_dists[target] = pf.distances(target)
+	var unit_dists: Dictionary[VirtualUnit, int]
+	for unit in units:
+		unit_dists[unit] = target_dists[unit.target][unit.cell]
+	var f: Callable = func(u: VirtualUnit, v: VirtualUnit) -> bool:
+		return unit_dists[u] < unit_dists[v]
+	units.sort_custom(f)
+	units.reverse()
+	
+	for try in range(10):
+		for unit in units:
+			var path: Array[Vector3i] = pf.find_path(unit.cell, unit.target, speed)
+			if not path.is_empty():
+				unit.path = path
+				pf.reserve_path(path, speed)
+			else:
+				units.erase(unit)
+				units.push_front(unit)
+				for a_unit in units:
+					pf.release_path(a_unit.path)
+					a_unit.path.clear()
+				break
+		var g: Callable = func(u: VirtualUnit, v: VirtualUnit) -> bool:
+			return u.idx < v.idx
+		units.sort_custom(g)
+		var paths: Array[Array]
+		for u in units:
+			paths.append(u.path)
+		return paths
+	printerr("No valid path found in 10 tries")
+	assert(false)
+	return []

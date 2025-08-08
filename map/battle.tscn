@@ -58,7 +58,7 @@ unique_name_in_owner = true
 speed = 10
 formation = SubResource("Resource_c4pa7")
 follower_data = Dictionary[PackedScene, int]({
-ExtResource("5_anury"): 29
+ExtResource("5_anury"): 2
 })
 
 [node name="FollowsCamera" type="CanvasLayer" parent="."]
