@@ -88,17 +88,6 @@ func _assign_targets(followers: Array[VirtualUnit], targets: Array[Vector2i]) ->
 			distances[unit].erase(chosen_target)
 		chosen_unit.target = chosen_target
 
-func find_paths(to: Vector2i) -> Array[Array]:
-	var targets: Array[Vector2i] = _targets(to)
-	units[0].target = targets[0]
-	_assign_targets(units.slice(1), targets.slice(1))
-	var paths: Array[Array]
-	for unit in units:
-		var path: Array[Vector3i] = pf.find_path(unit.cell, unit.target, speed)
-		paths.append(path)
-		pf.reserve_path(path, speed)
-	return paths
-
 # Good enough for prototyping. Rewrite nicely in Rust later
 func find_nonempty_paths(to: Vector2i) -> Array[Array]:
 	var targets: Array[Vector2i] = _targets(to)
@@ -119,10 +108,10 @@ func find_nonempty_paths(to: Vector2i) -> Array[Array]:
 	
 	for try in range(10):
 		for unit in units:
-			var path: Array[Vector3i] = pf.find_path(unit.cell, unit.target, speed)
+			var path: Array[Vector2i] = pf.find_path(unit.cell, unit.target, speed)
 			if not path.is_empty():
 				unit.path = path
-				pf.reserve_path(path, speed)
+				pf.reserve_path(path)
 			else:
 				units.erase(unit)
 				units.push_front(unit)

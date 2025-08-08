@@ -144,29 +144,28 @@ func _find_path(from: Vector2i, to: Vector2i, min_time: int) -> Array[Vector3i]:
 	path.reverse()
 	return path
 
-# Shouldn't depend on total_time
-func reserve_path(path: Array[Vector3i], total_time: int) -> void:
-	for v: Vector3i in path.slice(1):
-		var cell: Vector2i = Util.project(v)
-		var delta: int = cost(cell)
-		for time in range(v.z - delta + 1, v.z + 1):
-			reserve(cell, time)
-	if path:
-		for time in range(path[-1].z + 1, total_time + 1):
-			reserve(Util.project(path[-1]), time)
-	else:
-		print("Empty path")
+func reserve_path(path: Array[Vector2i]) -> void:
+	for time in path.size():
+		reserve(path[time], time)
 
 # Clears ALL reservations, even at other times!
-func release_path(path: Array[Vector3i]) -> void:
+func release_path(path: Array[Vector2i]) -> void:
 	for v in path:
-		_cells[Util.project(v)].block_times.clear()
+		_cells[v].block_times.clear()
+
+func _unfold_path(path: Array[Vector3i]) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	var last_time: int = -1
+	for cell in path:
+		for i in cell.z - last_time:
+			out.append(Util.project(cell))
+	return out
 
 # Find a path from -> to, stopping part-way if total time is exceeded. Reserve the path
-func find_path(from: Vector2i, to: Vector2i, total_time: int) -> Array[Vector3i]:
+func find_path(from: Vector2i, to: Vector2i, total_time: int) -> Array[Vector2i]:
 	var path: Array[Vector3i] = _find_path(from, to, total_time)
 	var on_time: Callable = func(v3: Vector3i) -> bool:
 		return v3.z <= total_time
 	path = path.filter(on_time)
 #	_reserve_path(path, total_time)
-	return path
+	return _unfold_path(path)

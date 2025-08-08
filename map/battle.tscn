@@ -12,7 +12,7 @@ size = Vector2(8192, 5376)
 
 [sub_resource type="Resource" id="Resource_c4pa7"]
 script = ExtResource("5_wa8g8")
-depth = 3
+depth = 1
 spread = 0
 mirror = false
 rotation = 0
@@ -59,6 +59,9 @@ speed = 10
 formation = SubResource("Resource_c4pa7")
 follower_data = Dictionary[PackedScene, int]({
 ExtResource("5_anury"): 2
+})
+terrain_data = Dictionary[int, int]({
+1: 2
 })
 
 [node name="FollowsCamera" type="CanvasLayer" parent="."]
