@@ -159,6 +159,7 @@ func _unfold_path(path: Array[Vector3i]) -> Array[Vector2i]:
 	for cell in path:
 		for i in cell.z - last_time:
 			out.append(Util.project(cell))
+		last_time = cell.z
 	return out
 
 # Find a path from -> to, stopping part-way if total time is exceeded. Reserve the path

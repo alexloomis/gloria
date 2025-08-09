@@ -56,9 +56,30 @@ func _place_followers() -> void:
 	for follower in followers:
 		add_sibling.call_deferred(follower)
 
+func _trim_paths(paths: Array[Array]) -> void:
+	while paths[0].size() >= 2:
+		var stationary: bool = true
+		for path in paths:
+			if not path[-1] == path[-2]:
+				stationary = false
+				break
+		if stationary:
+			for path in paths:
+				path.pop_back()
+		else:
+			return
+
 func get_paths(to: Vector2i) -> Array[Array]:
 	nav.reset(self)
-	return nav.find_nonempty_paths(to)
+	var paths: Array[Array] = nav.find_nonempty_paths(to)
+	_trim_paths(paths)
+	return paths
+
+func _move_adjacent_by_idx(idx: int, to: Vector2i) -> void:
+	if idx == 0:
+		move_adjacent(to)
+	else:
+		followers[idx-1].move_adjacent(to)
 
 func move_formation(to: Vector2i) -> void:
 	if not available:
@@ -66,25 +87,10 @@ func move_formation(to: Vector2i) -> void:
 	available = false
 	var paths: Array[Array] = get_paths(to)
 	print(paths[0])
-	for time in speed:
-		var done: bool = true
-		if paths[0].size() > 1:
-			var coord: Vector2i = paths[0][0]
-			paths[0].remove_at(0)
-			var new_coord: Vector2i = paths[0][0]
-			move_adjacent(new_coord)
-			@warning_ignore("unsafe_call_argument")
-			if not paths[0][-1] == cell:
-				done = false
-		for idx in range(1, followers.size() + 1):
-			if paths[idx].size() > 1:
-				var coord: Vector2i = paths[idx][0]
-				paths[idx].remove_at(0)
-				var new_coord: Vector2i = paths[idx][0]
-				followers[idx-1].move_adjacent(new_coord)
-				@warning_ignore("unsafe_call_argument")
-				if not paths[idx][-1] == followers[idx-1].cell:
-					done = false
-		if not done:
-			await get_tree().create_timer(0.3).timeout
+	for time in paths[0].size():
+		for idx in paths.size():
+			if time < paths[idx].size():
+				var new_cell: Vector2i = paths[idx][time]
+				_move_adjacent_by_idx(idx, new_cell)
+		await get_tree().create_timer(0.3).timeout
 	available = true
