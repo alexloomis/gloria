@@ -2,14 +2,22 @@ extends Resource
 
 class_name Shape
 
-@export var spread: int = 0:
-	set(val):
-		spread = max(val, 0)
+
 # Mirrored then rotated
 @export var mirror: bool = false
 @export var rotation: int = 0:
 	set(val):
 		rotation = val % 8
+@export var spread: int = 0:
+	set(val):
+		spread = max(val, 0)
+
+var base_tiles: Array[Vector2i]
+var tiles: Array[Vector2i]
+
+func set_tiles() -> void:
+	for i in tiles.size():
+		tiles[i] = _apply_transformation(base_tiles[i])
 
 func _shift(tile: Vector2i, n: int = 1) -> Vector2i:
 	var r: int = max(tile.abs().x, tile.abs().y)
@@ -46,9 +54,9 @@ func _apply_transformation(tile: Vector2i) -> Vector2i:
 
 # Cc-wise, balanced sides
 func square(radius: int) -> Array[Vector2i]:
-	var tiles: Array[Vector2i] = []
+	var sq_tiles: Array[Vector2i] = []
 	if radius <= 0:
-		tiles.append(Vector2i(0,0))
+		sq_tiles.append(Vector2i(0,0))
 	else:
 			# Ring has 8*radius tiles, so 2*radius _shifts starting in each cardinal direction
 			for n in range(2*radius):
@@ -56,8 +64,8 @@ func square(radius: int) -> Array[Vector2i]:
 					cell *= radius
 					if n % 2 == 0:
 						@warning_ignore("integer_division")
-						tiles.append(_shift(cell, -n/2))
+						sq_tiles.append(_shift(cell, -n/2))
 					else:
 						@warning_ignore("integer_division")
-						tiles.append(_shift(cell, (n+1)/2))
-	return tiles
+						sq_tiles.append(_shift(cell, (n+1)/2))
+	return sq_tiles

@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://smjr44utvxtk"]
+[gd_scene load_steps=12 format=3 uid="uid://smjr44utvxtk"]
 
 [ext_resource type="Script" path="res://map/battle.gd" id="1_omlya"]
 [ext_resource type="Script" path="res://map/camera.gd" id="1_u6xvg"]
@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://occ4f3kwgxqv" path="res://entity/DEBUG/Commander.tscn" id="4_6lqbp"]
 [ext_resource type="PackedScene" uid="uid://dq8bwfsc5ltul" path="res://entity/DEBUG/Knight.tscn" id="5_anury"]
 [ext_resource type="Script" path="res://shape/formation/column.gd" id="5_wa8g8"]
+[ext_resource type="Script" path="res://entity/unit/leader/leader.gd" id="7_cmcea"]
+[ext_resource type="Texture2D" uid="uid://djp5e5eive8db" path="res://textures_test/oak.png" id="8_bpmhp"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_y0vd2"]
 size = Vector2(8192, 5376)
@@ -13,9 +15,16 @@ size = Vector2(8192, 5376)
 [sub_resource type="Resource" id="Resource_c4pa7"]
 script = ExtResource("5_wa8g8")
 depth = 1
-spread = 0
 mirror = false
 rotation = 0
+spread = 0
+
+[sub_resource type="Resource" id="Resource_oaye6"]
+script = ExtResource("5_wa8g8")
+depth = 2
+mirror = false
+rotation = 0
+spread = 1
 
 [node name="Battle" type="Node"]
 script = ExtResource("1_omlya")
@@ -55,6 +64,7 @@ shape = SubResource("RectangleShape2D_y0vd2")
 unique_name_in_owner = true
 
 [node name="Commander" parent="IgnoresCamera/Units/Player" instance=ExtResource("4_6lqbp")]
+position = Vector2(1280, 768)
 speed = 10
 formation = SubResource("Resource_c4pa7")
 follower_data = Dictionary[PackedScene, int]({
@@ -63,6 +73,12 @@ ExtResource("5_anury"): 2
 terrain_data = Dictionary[int, int]({
 1: 2
 })
+
+[node name="Leader" type="Node2D" parent="IgnoresCamera/Units/Player"]
+script = ExtResource("7_cmcea")
+speed = 10
+formation = SubResource("Resource_oaye6")
+texture = ExtResource("8_bpmhp")
 
 [node name="FollowsCamera" type="CanvasLayer" parent="."]
 
