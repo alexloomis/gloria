@@ -3,7 +3,7 @@ extends Resource
 class_name Navigator
 
 var units: Array[VirtualUnit]
-var formation: Formation
+var formation: Shape
 var pf: Pathfinder
 var speed: int
 
@@ -43,7 +43,7 @@ func _targets(near: Vector2i) -> Array[Vector2i]:
 	if not formation:
 		return []
 	# What the formation would be if everything were clear, clamped to be in bounds.
-	var unassigned: Array[Vector2i] = formation.get_tiles(units.size())
+	var unassigned: Array[Vector2i] = formation.tiles
 	for i in unassigned.size():
 		unassigned[i] += near
 		unassigned[i] = Grid.clamp(unassigned[i])

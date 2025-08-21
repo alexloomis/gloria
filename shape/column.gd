@@ -1,6 +1,6 @@
-extends Formation
+extends Shape
 
-@export_range(1,100) var depth: int
+@export_range(1,100) var depth: int = 1
 
 func _get_tile(n: int) -> Vector2i:
 	var x: int = n % depth
@@ -11,3 +11,8 @@ func _get_tile(n: int) -> Vector2i:
 	if row_idx % 2 == 0:
 		y *= -1
 	return Vector2i(x,y)
+
+func _grow_shape() -> void:
+	print("growing")
+	while base_tiles.size() < size:
+		base_tiles += [_get_tile(base_tiles.size())]

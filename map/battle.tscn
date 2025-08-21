@@ -5,7 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://bftjvuchryay3" path="res://textures_test/ph_background.jpg" id="3_kgd5d"]
 [ext_resource type="PackedScene" uid="uid://occ4f3kwgxqv" path="res://entity/DEBUG/Commander.tscn" id="4_6lqbp"]
 [ext_resource type="PackedScene" uid="uid://dq8bwfsc5ltul" path="res://entity/DEBUG/Knight.tscn" id="5_anury"]
-[ext_resource type="Script" path="res://shape/formation/column.gd" id="5_wa8g8"]
+[ext_resource type="Script" path="res://shape/column.gd" id="5_wa8g8"]
 [ext_resource type="Script" path="res://entity/unit/leader/leader.gd" id="7_cmcea"]
 [ext_resource type="Texture2D" uid="uid://djp5e5eive8db" path="res://textures_test/oak.png" id="8_bpmhp"]
 
@@ -15,6 +15,7 @@ size = Vector2(8192, 5376)
 [sub_resource type="Resource" id="Resource_c4pa7"]
 script = ExtResource("5_wa8g8")
 depth = 1
+size = 0
 mirror = false
 rotation = 0
 spread = 0
@@ -22,6 +23,7 @@ spread = 0
 [sub_resource type="Resource" id="Resource_oaye6"]
 script = ExtResource("5_wa8g8")
 depth = 2
+size = 0
 mirror = false
 rotation = 0
 spread = 1

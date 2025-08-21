@@ -2,7 +2,11 @@ extends Resource
 
 class_name Shape
 
-
+@export var size: int = 0:
+	set(val):
+		size = max(val, 0)
+		if size > base_tiles.size():
+			_grow_shape()
 # Mirrored then rotated
 @export var mirror: bool = false
 @export var rotation: int = 0:
@@ -12,12 +16,20 @@ class_name Shape
 	set(val):
 		spread = max(val, 0)
 
-var base_tiles: Array[Vector2i]
-var tiles: Array[Vector2i]
+var base_tiles: Array[Vector2i]:
+	set(base):
+		base_tiles = base
+var tiles: Array[Vector2i]:
+	get:
+		var out: Array[Vector2i] = []
+		out.resize(size)
+		for i in size:
+			out[i] = _apply_transformation(base_tiles[i])
+		return out
 
-func set_tiles() -> void:
-	for i in tiles.size():
-		tiles[i] = _apply_transformation(base_tiles[i])
+# Override this to create different shapes
+func _grow_shape() -> void:
+	pass
 
 func _shift(tile: Vector2i, n: int = 1) -> Vector2i:
 	var r: int = max(tile.abs().x, tile.abs().y)
@@ -53,7 +65,7 @@ func _apply_transformation(tile: Vector2i) -> Vector2i:
 # Common functions to help define shapes
 
 # Cc-wise, balanced sides
-func square(radius: int) -> Array[Vector2i]:
+func _square(radius: int) -> Array[Vector2i]:
 	var sq_tiles: Array[Vector2i] = []
 	if radius <= 0:
 		sq_tiles.append(Vector2i(0,0))
