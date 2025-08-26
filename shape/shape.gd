@@ -27,6 +27,10 @@ var tiles: Array[Vector2i]:
 			out[i] = _apply_transformation(base_tiles[i])
 		return out
 
+func grow_and_get(n: int) -> Vector2i:
+	size = max(size, n + 1)
+	return tiles[n]
+
 # Override this to create different shapes
 func _grow_shape() -> void:
 	pass

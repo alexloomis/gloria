@@ -16,6 +16,7 @@ var selected_entity: Unit:
 		selected_entity = v
 		selection_changed.emit(selected_entity)
 var state := SELECTED.NONE
+var unit_moving: bool = false
 
 func _ready() -> void:
 	_init_tiles()
@@ -39,12 +40,14 @@ func _manage_l_click() -> void:
 			if target != null:
 				select_entity(target)
 		SELECTED.ENTITY:
-			if selected_entity is Leader:
+			if selected_entity is Leader and not unit_moving:
 				var leader: Leader = selected_entity
-				# leader.move(leader.cell, cell)
-				leader.move_formation(cell)
+				unit_moving = true
+				await leader.move_formation(cell)
+				unit_moving = false
 #			if target != null:
 #				select_entity(target)
+
 #			else:
 				# placeholder value
 				#move.move(grid.px_to_cell(selected_entity.position), cell, 999999)

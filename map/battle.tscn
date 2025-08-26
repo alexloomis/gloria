@@ -75,11 +75,16 @@ ExtResource("5_anury"): 2
 terrain_data = Dictionary[int, int]({
 1: 2
 })
+disp_name = &"knight"
 
 [node name="Leader" type="Node2D" parent="IgnoresCamera/Units/Player"]
 script = ExtResource("7_cmcea")
 speed = 10
 formation = SubResource("Resource_oaye6")
+terrain_data = Dictionary[int, int]({
+1: 1
+})
+disp_name = &"tree"
 texture = ExtResource("8_bpmhp")
 
 [node name="FollowsCamera" type="CanvasLayer" parent="."]

@@ -15,7 +15,6 @@ var followers: Array[Follower]:
 	set(val):
 		followers = val
 		formation.size = followers.size() + 1
-		print("updated followers")
 var nav: Navigator
 var pf: Pathfinder
 
@@ -36,7 +35,6 @@ func _init_nav() -> void:
 	nav = Navigator.new()
 
 func _instantiate_followers() -> void:
-	followers.clear()
 	for scene in follower_data:
 		for _i in follower_data[scene]:
 			var new_follower: Follower = scene.instantiate() as Follower
@@ -44,17 +42,15 @@ func _instantiate_followers() -> void:
 			followers += [new_follower]
 
 func _place_followers() -> void:
+	followers = []
 	if not formation:
 		return
 	_instantiate_followers()
 	var idx: int = 0
-	print(formation.size)
-	print(formation.tiles)
-	print(formation.base_tiles)
 	for follower in followers:
 		var placed: bool = false
 		while not placed:
-			var candidate: Vector2i = cell + formation.tiles[idx]
+			var candidate: Vector2i = cell + formation.grow_and_get(idx)
 			if Grid.in_bounds(candidate) and pf.is_clear(candidate):
 				follower.cell = candidate
 				placed = true
@@ -92,7 +88,6 @@ func move_formation(to: Vector2i) -> void:
 		return
 	available = false
 	var paths: Array[Array] = get_paths(to)
-	print(paths[0])
 	for time in paths[0].size():
 		for idx in paths.size():
 			if time < paths[idx].size():

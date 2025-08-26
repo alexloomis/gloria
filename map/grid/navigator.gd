@@ -41,6 +41,7 @@ func _target_near(near: Vector2i, omit: Array[Vector2i]) -> Vector2i:
 # If units had infinite move, this is where the units would end up.
 func _targets(near: Vector2i) -> Array[Vector2i]:
 	if not formation:
+		printerr("no formation")
 		return []
 	# What the formation would be if everything were clear, clamped to be in bounds.
 	var unassigned: Array[Vector2i] = formation.tiles
@@ -100,6 +101,7 @@ func find_nonempty_paths(to: Vector2i) -> Array[Array]:
 		target_dists[target] = pf.distances(target)
 	var unit_dists: Dictionary[VirtualUnit, int]
 	for unit in units:
+		# TODO: make units who can't move recognize it instead of crashing
 		unit_dists[unit] = target_dists[unit.target][unit.cell]
 	var f: Callable = func(u: VirtualUnit, v: VirtualUnit) -> bool:
 		return unit_dists[u] < unit_dists[v]

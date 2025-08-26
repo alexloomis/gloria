@@ -13,6 +13,5 @@ func _get_tile(n: int) -> Vector2i:
 	return Vector2i(x,y)
 
 func _grow_shape() -> void:
-	print("growing")
 	while base_tiles.size() < size:
 		base_tiles += [_get_tile(base_tiles.size())]
