@@ -40,20 +40,21 @@ func _manage_l_click() -> void:
 			if target != null:
 				select_entity(target)
 		SELECTED.ENTITY:
-			if selected_entity is Leader and not unit_moving:
-				var leader: Leader = selected_entity
-				unit_moving = true
-				await leader.move_formation(cell)
-				unit_moving = false
-#			if target != null:
-#				select_entity(target)
-
-#			else:
-				# placeholder value
-				#move.move(grid.px_to_cell(selected_entity.position), cell, 999999)
-				#deselect_entity()
+			if selected_entity is Leader:
+				request_move(cell)
+			elif target != null:
+				select_entity(target)
+			else:
+				deselect_entity()
 		SELECTED.ABILITY:
 			pass
+
+func request_move(cell: Vector2i) -> void:
+	if not unit_moving:
+		var leader: Leader = selected_entity
+		unit_moving = true
+		await leader.move_formation(cell)
+		unit_moving = false
 
 func _manage_r_click() -> void:
 	match state:

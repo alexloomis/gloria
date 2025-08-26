@@ -162,11 +162,10 @@ func _unfold_path(path: Array[Vector3i]) -> Array[Vector2i]:
 		last_time = cell.z
 	return out
 
-# Find a path from -> to, stopping part-way if total time is exceeded. Reserve the path
+# Find a path from -> to, stopping part-way if total time is exceeded
 func find_path(from: Vector2i, to: Vector2i, total_time: int) -> Array[Vector2i]:
 	var path: Array[Vector3i] = _find_path(from, to, total_time)
 	var on_time: Callable = func(v3: Vector3i) -> bool:
 		return v3.z <= total_time
 	path = path.filter(on_time)
-#	_reserve_path(path, total_time)
 	return _unfold_path(path)
